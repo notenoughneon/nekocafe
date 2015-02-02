@@ -1,0 +1,24 @@
+{
+  "name": "nekocafe",
+  "version": "0.1.0",
+  "description": "Toy chat server",
+  "main": "nekocafe.js",
+  "dependencies": {
+    "ansi": "^0.3.0",
+    "keypress": "^0.2.1",
+    "telnet": "0.0.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/notenoughneon/nekocafe.git"
+  },
+  "keywords": [
+    "chat"
+  ],
+  "author": "Emma Kuo",
+  "bugs": {
+    "url": "https://github.com/notenoughneon/nekocafe/issues"
+  },
+  "homepage": "https://github.com/notenoughneon/nekocafe"
+}
