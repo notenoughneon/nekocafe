@@ -4,9 +4,7 @@
   "description": "Toy chat server",
   "main": "nekocafe.js",
   "dependencies": {
-    "ansi": "^0.3.0",
-    "keypress": "^0.2.1",
-    "telnet": "0.0.1"
+    "express": "^4.11.2"
   },
   "devDependencies": {},
   "repository": {
