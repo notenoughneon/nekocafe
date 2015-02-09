@@ -4,7 +4,8 @@
   "description": "Toy chat server",
   "main": "nekocafe.js",
   "dependencies": {
-    "express": "^4.11.2"
+    "express": "^4.11.2",
+    "socket.io": "^1.3.3"
   },
   "devDependencies": {},
   "repository": {
