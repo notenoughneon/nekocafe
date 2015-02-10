@@ -1,20 +1,69 @@
 <html>
     <head>
-        <script src="/socket.io/socket.io.js"></script>
-        <script>
-            var socket = io();
-            socket.on('connect', function() {
-                console.log('Connected');
-            });
-            socket.on('disconnect', function() {
-                console.log('Disconnected');
-            });
-            socket.on('message', function(data) {
-                console.log('message: ' + data);
-            });
-        </script>
+        <title>nekocafe</title>
+        <style>
+            body {
+                font: 13px Helvetica, Arial;
+            }
+            ul {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+            }
+            form {
+                display: none;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+            }
+            form input {
+                width: 90%;
+            }
+        </style>
     </head>
     <body>
-        <h1>Hello World!</h1>
+        <div id="login">
+            <input id="nick" placeholder="Enter nickname" type="text" />
+            <button id="connect">Connect</button>
+        </div>
+        <ul id="messages"></ul>
+        <form action="">
+            <input id="message" autocomplete="off" />
+            <button>Send</button>
+        </form>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/jquery-2.1.3.min.js"></script>
+        <script>
+            var socket;
+            function log(msg) {
+                $('#messages').append($('<li>').text(msg));
+            }
+            $('form').submit(function() {
+                socket.emit('message', $('#message').val());
+                $('#message').val('');
+                return false;
+            });
+            $('#connect').click(function() {
+                $('#login').hide();
+                $('form').show();
+                socket = io();
+                socket.on('connect', function() {
+                    socket.emit('nick', $('#nick').val());
+                });
+                socket.on('join', function(nick) {
+                    log('* ' + nick + ' joined.');
+                });
+                socket.on('part', function(nick) {
+                    log('* ' + nick + ' left.');
+                });
+                socket.on('message', function(m) {
+                    log('<' + m.nick + '> ' + m.message);
+                });
+                socket.on('nicks', function(nicks) {
+                    log('Users online: ' + nicks.join(', ') + '.');
+                });
+
+            });
+        </script>
     </body>
 </html>
