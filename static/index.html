@@ -13,7 +13,12 @@
             #loginScreen {
                 height: 100%;
                 width: 100%;
+                padding-top: 50px;
                 background-color: #d0d0d0;
+            }
+            #loginForm {
+                max-width: 250px;
+                margin: 0 auto;
             }
             #chatScreen {
                 display: none;
@@ -31,10 +36,14 @@
         </style>
     </head>
     <body>
-        <div id="loginScreen">
-            <form id="loginForm" class="form-inline">
-                <input id="nick" class="form-control" placeholder="What is your neko name?" type="text" />
-                <button class="btn btn-default">Connect</button>
+        <div id="loginScreen" class="container">
+            <form id="loginForm">
+                <div class="form-group">
+                <input id="nick" class="form-control input-lg"
+                placeholder="Enter neko name" type="text" required
+                autofocus />
+                </div>
+                <button class="btn btn-lg btn-primary btn-block">Connect</button>
             </form>
         </div>
 
