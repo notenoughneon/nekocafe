@@ -11,10 +11,9 @@
                 height: 100%;
             }
             #loginScreen {
-                height: 100%;
                 width: 100%;
                 padding-top: 50px;
-                background-color: #d0d0d0;
+                background-color: #202020;
             }
             #loginForm {
                 max-width: 250px;
@@ -27,11 +26,7 @@
                 list-style-type: none;
                 margin: 0;
                 padding: 0;
-                padding-bottom: 50px;
-            }
-            #chatForm {
-                position: fixed;
-                bottom: 0;
+                margin-bottom: 70px;
             }
         </style>
     </head>
@@ -43,20 +38,28 @@
                 placeholder="Enter neko name" type="text" required
                 autofocus />
                 </div>
-                <button class="btn btn-lg btn-primary btn-block">Connect</button>
+                <button class="btn btn-lg btn-success btn-block">Connect</button>
             </form>
         </div>
 
-        <div id="chatScreen" class="container">
-            <ul id="messages"></ul>
-            <form id="chatForm" action="">
-                <div class="input-group">
-                    <input id="message" class="form-control" placeholder="Enter message" autocomplete="off" />
-                    <span class="input-group-btn">
-                        <button class="btn btn-default">Send</button>
-                    </span>
+        <div id="chatScreen">
+            <div class="container">
+                <ul id="messages"></ul>
+            </div>
+            <nav class="navbar navbar-default navbar-fixed-bottom">
+            <div class="container">
+                <div class="row">
+                    <form id="chatForm" class="navbar-form" action="">
+                        <div class="input-group col-sm-12 col-md-9">
+                            <input id="message" class="form-control" placeholder="Enter message" autocomplete="off" />
+                            <span class="input-group-btn">
+                                <button class="btn btn-default">Send</button>
+                            </span>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
+            </nav>
         </div>
 
         <script src="/socket.io/socket.io.js"></script>
