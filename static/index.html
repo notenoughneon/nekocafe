@@ -67,7 +67,7 @@
         <script>
             var socket;
             function log(msg) {
-                $('#messages').append($('<li>').text(msg));
+                $('#messages').append($('<li>').html(msg));
                 $("html, body").animate({ scrollTop: $(document).height()-$(window).height() }, 10);
             }
             $('#chatForm').submit(function() {
@@ -86,7 +86,7 @@
                     log('* ' + msg);
                 });
                 socket.on('message', function(m) {
-                    log('<' + m.nick + '> ' + m.message);
+                    log('&lt;' + m.nick + '&gt; ' + m.message);
                 });
                 return false;
             });

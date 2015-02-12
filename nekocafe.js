@@ -26,6 +26,18 @@ function broadcast(type, obj) {
     });
 }
 
+function escapeHtml(s) {
+    return s.replace('&','&amp;').
+        replace('<','&lt;').
+        replace('>','&gt;');
+}
+
+var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~-]*)?)/i;
+
+function hotLink(s) {
+    return s.replace(urlRe, '<a href="$1">$1</a>');
+}
+
 io.on('connection', function(socket) {
     var me;
     socket.on('nick', function(nick) {
@@ -44,7 +56,10 @@ io.on('connection', function(socket) {
         broadcast('system', me.nick + ' left.');
     });
     socket.on('message', function(msg) {
-        broadcast('message', {nick: me.nick, message: msg});
+        broadcast('message', {
+            nick: me.nick,
+            message: hotLink(escapeHtml(msg))
+        });
     });
 });
 
