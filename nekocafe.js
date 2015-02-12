@@ -3,6 +3,13 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+if (process.argv.length < 3) {
+    console.log('Usage: node nekocafe.js [port]');
+    process.exit(1);
+}
+
+var port = process.argv[2];
+
 app.use(express.static('static'));
 
 var allnicks = [];
@@ -24,7 +31,7 @@ io.on('connection', function(socket) {
     });
 });
 
-var server = http.listen(10300, function () {
+var server = http.listen(port, function () {
     var address = server.address();
     console.log('Listening on %s:%s', address.address,
         address.port);
