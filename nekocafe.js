@@ -52,8 +52,10 @@ io.on('connection', function(socket) {
         }
     });
     socket.on('disconnect', function() {
-        nekoes = nekoes.filter(function(n) {return n.id !== me.id;});
-        broadcast('system', me.nick + ' left.');
+        if (me !== undefined) {
+            nekoes = nekoes.filter(function(n) {return n.id !== me.id;});
+            broadcast('system', me.nick + ' left.');
+        }
     });
     socket.on('message', function(msg) {
         broadcast('message', {
