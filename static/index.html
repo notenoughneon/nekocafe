@@ -82,18 +82,11 @@
                 socket.on('connect', function() {
                     socket.emit('nick', $('#nick').val());
                 });
-                socket.on('join', function(nick) {
-                    log('* ' + nick + ' joined.');
-                });
-                socket.on('part', function(nick) {
-                    log('* ' + nick + ' left.');
+                socket.on('system', function(msg) {
+                    log('* ' + msg);
                 });
                 socket.on('message', function(m) {
                     log('<' + m.nick + '> ' + m.message);
-                });
-                socket.on('nicks', function(nicks) {
-                    log('You are in Neko Cafe.');
-                    log('Nekoes here: ' + nicks.join(', ') + '.');
                 });
                 return false;
             });

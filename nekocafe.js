@@ -12,22 +12,39 @@ var port = process.argv[2];
 
 app.use(express.static('static'));
 
-var allnicks = [];
+var Neko = function(socket, nick) {
+    this.id = new Date().getTime();
+    this.socket = socket;
+    this.nick = nick;
+};
+
+var nekoes = [];
+
+function broadcast(type, obj) {
+    nekoes.forEach(function(n) {
+        n.socket.emit(type, obj);
+    });
+}
 
 io.on('connection', function(socket) {
-    var mynick;
+    var me;
     socket.on('nick', function(nick) {
-        mynick = nick;
-        allnicks.push(mynick);
-        io.emit('join', mynick);
-        socket.emit('nicks', allnicks);
+        if (me === undefined) {
+            me = new Neko(socket, nick);
+            nekoes.push(me);
+            broadcast('system', me.nick + ' joined.');
+            socket.emit('system', 'Welcome to Neko Cafe.');
+            socket.emit('system', 'Nekoes online: ' +
+                nekoes.map(function(n){return n.nick;}).join(', ') +
+                '.');
+        }
     });
     socket.on('disconnect', function() {
-        allnicks = allnicks.filter(function(n) {return n !== mynick;});
-        io.emit('part', mynick);
+        nekoes = nekoes.filter(function(n) {return n.id !== me.id;});
+        broadcast('system', me.nick + ' left.');
     });
     socket.on('message', function(msg) {
-        io.emit('message', {nick: mynick, message: msg});
+        broadcast('message', {nick: me.nick, message: msg});
     });
 });
 
