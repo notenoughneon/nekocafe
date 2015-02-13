@@ -35,7 +35,7 @@ function escapeHtml(s) {
 var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~-]*)?)/i;
 
 function hotLink(s) {
-    return s.replace(urlRe, '<a href="$1">$1</a>');
+    return s.replace(urlRe, '<a href="$1" target="_blank" tabindex="-1">$1</a>');
 }
 
 io.on('connection', function(socket) {
