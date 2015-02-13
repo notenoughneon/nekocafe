@@ -66,8 +66,10 @@
         <script src="/jquery-2.1.3.min.js"></script>
         <script>
             var socket;
+
             var isBlurred = false;
             var newCount = 0;
+
             $(window).blur(function() {
                 isBlurred = true;
                 newCount = 0;
@@ -75,6 +77,13 @@
                 isBlurred = false;
                 $('title').text('nekocafe');
             });
+
+            var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~-]*)?)/ig;
+
+            function hotLink(s) {
+                return s.replace(urlRe, '<a href="$1" target="_blank" tabindex="-1">$1</a>');
+            }
+
             function log(msg) {
                 $('#messages').append($('<li>').html(msg));
                 $("html, body").animate({ scrollTop: $(document).height()-$(window).height() }, 10);
@@ -83,11 +92,13 @@
                     $('title').text('(' + newCount + ') nekocafe');
                 }
             }
+
             $('#chatForm').submit(function() {
                 socket.emit('message', $('#message').val());
                 $('#message').val('');
                 return false;
             });
+
             $('#loginForm').submit(function() {
                 $('#loginScreen').hide();
                 $('#chatScreen').show();
@@ -99,7 +110,7 @@
                     log('* ' + msg);
                 });
                 socket.on('message', function(m) {
-                    log('&lt;' + m.nick + '&gt; ' + m.message);
+                    log('&lt;' + m.nick + '&gt; ' + hotLink(m.message));
                 });
                 return false;
             });

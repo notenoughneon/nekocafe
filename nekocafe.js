@@ -27,22 +27,16 @@ function broadcast(type, obj) {
 }
 
 function escapeHtml(s) {
-    return s.replace('&','&amp;').
-        replace('<','&lt;').
-        replace('>','&gt;');
-}
-
-var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~-]*)?)/i;
-
-function hotLink(s) {
-    return s.replace(urlRe, '<a href="$1" target="_blank" tabindex="-1">$1</a>');
+    return s.replace(/&/g,'&amp;').
+        replace(/</g,'&lt;').
+        replace(/>/g,'&gt;');
 }
 
 io.on('connection', function(socket) {
     var me;
     socket.on('nick', function(nick) {
         if (me === undefined) {
-            me = new Neko(socket, nick);
+            me = new Neko(socket, escapeHtml(nick));
             nekoes.push(me);
             broadcast('system', me.nick + ' joined.');
             socket.emit('system', 'Welcome to Neko Cafe.');
@@ -58,10 +52,7 @@ io.on('connection', function(socket) {
         }
     });
     socket.on('message', function(msg) {
-        broadcast('message', {
-            nick: me.nick,
-            message: hotLink(escapeHtml(msg))
-        });
+        broadcast('message', { nick: me.nick, message: escapeHtml(msg) });
     });
 });
 
