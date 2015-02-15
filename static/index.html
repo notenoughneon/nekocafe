@@ -78,6 +78,12 @@
                 $('title').text('nekocafe');
             });
 
+            function escapeHtml(s) {
+                return s.replace(/&/g,'&amp;').
+                replace(/</g,'&lt;').
+                replace(/>/g,'&gt;');
+            }
+
             var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~-]*)?)/ig;
 
             function hotLink(s) {
@@ -107,10 +113,13 @@
                     socket.emit('nick', $('#nick').val());
                 });
                 socket.on('system', function(msg) {
-                    log('* ' + msg);
+                    log('* ' + escapeHtml(msg));
                 });
                 socket.on('message', function(m) {
-                    log('&lt;' + m.nick + '&gt; ' + hotLink(m.message));
+                    log('&lt;' +
+                    escapeHtml(m.nick) +
+                    '&gt; ' +
+                    hotLink(escapeHtml(m.message)));
                 });
                 return false;
             });
