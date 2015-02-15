@@ -20,9 +20,23 @@ var Neko = function(socket, nick) {
 
 var nekoes = [];
 
-function broadcast(type, obj) {
+var SystemMessage = function(msg) {
+    this.type = 'system';
+    this.value = {time: Date.now(), message: msg};
+}
+
+var Message = function (nick, msg) {
+    this.type = 'message';
+    this.value = {time: Date.now(), nick: nick, message: msg};
+}
+
+function unicast(socket, message) {
+    socket.emit(message.type, message.value);
+}
+
+function broadcast(message) {
     nekoes.forEach(function(n) {
-        n.socket.emit(type, obj);
+        n.socket.emit(message.type, message.value);
     });
 }
 
@@ -32,21 +46,21 @@ io.on('connection', function(socket) {
         if (me === undefined) {
             me = new Neko(socket, nick);
             nekoes.push(me);
-            broadcast('system', me.nick + ' joined.');
-            socket.emit('system', 'Welcome to Neko Cafe.');
-            socket.emit('system', 'Nekoes online: ' +
+            broadcast(new SystemMessage(me.nick + ' joined.'));
+            unicast(socket, new SystemMessage('Welcome to Neko Cafe.'));
+            unicast(socket, new SystemMessage('Nekoes online: ' +
                 nekoes.map(function(n){return n.nick;}).join(', ') +
-                '.');
+                '.'));
         }
     });
     socket.on('disconnect', function() {
         if (me !== undefined) {
             nekoes = nekoes.filter(function(n) {return n.id !== me.id;});
-            broadcast('system', me.nick + ' left.');
+            broadcast(new SystemMessage(me.nick + ' left.'));
         }
     });
     socket.on('message', function(msg) {
-        broadcast('message', { nick: me.nick, message: msg });
+        broadcast(new Message(me.nick, msg));
     });
 });
 

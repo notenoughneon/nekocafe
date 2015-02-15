@@ -28,6 +28,9 @@
                 padding: 0;
                 margin-bottom: 70px;
             }
+            ul time {
+                color: #bbbbbb;
+            }
         </style>
     </head>
     <body>
@@ -90,13 +93,47 @@
                 return s.replace(urlRe, '<a href="$1" target="_blank" tabindex="-1">$1</a>');
             }
 
-            function log(msg) {
-                $('#messages').append($('<li>').html(msg));
+            function liveTime(elt) {
+                $('time').each(function() {
+                    var month = ['Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec'];
+                    var dt = new Date($(this).attr('datetime'));
+                    var delta = $.now() - dt.getTime();
+                    if (delta < 1000*60) {
+                        $(this).text(Math.floor(Math.max(0,delta/(1000))) + 's');
+                        //$(this).text('<1m');
+                        } else if (delta < 1000*60*60) {
+                        $(this).text(Math.floor(Math.max(0,delta/(1000*60))) + 'm');
+                        } else if (delta < 1000*60*60*24) {
+                        $(this).text(Math.floor(delta/(1000*60*60)) + 'h');
+                        } else if (delta < 1000*60*60*24*30) {
+                        $(this).text(Math.floor(delta/(1000*60*60*24)) + 'd');
+                        } else if (delta < 1000*60*60*24*365) {
+                        $(this).text(dt.getDate() + ' ' + month[dt.getMonth()]);
+                        } else {
+                        $(this).text(dt.getDate() + ' ' + month[dt.getMonth()]
+                        + ' ' + dt.getFullYear());
+                    }
+                    return true;
+                });
+            }
+
+            window.setInterval(liveTime, 1000 * 10);
+
+            function log(time, text) {
+                var time = new Date(time);
+                $('#messages').append($('<li class="row">').
+                append($('<time class="col-xs-2 col-sm-1">').
+                attr('datetime', time.toISOString()).
+                attr('title', time.toLocaleString())).
+                append($('<span class="col-xs-10 col-sm-11">').html(text))
+                );
                 $("html, body").animate({ scrollTop: $(document).height()-$(window).height() }, 10);
                 if (isBlurred) {
                     newCount++;
                     $('title').text('(' + newCount + ') nekocafe');
                 }
+                liveTime();
             }
 
             $('#chatForm').submit(function() {
@@ -113,13 +150,11 @@
                     socket.emit('nick', $('#nick').val());
                 });
                 socket.on('system', function(msg) {
-                    log('* ' + escapeHtml(msg));
+                    log(msg.time, '* ' + escapeHtml(msg.message));
                 });
-                socket.on('message', function(m) {
-                    log('&lt;' +
-                    escapeHtml(m.nick) +
-                    '&gt; ' +
-                    hotLink(escapeHtml(m.message)));
+                socket.on('message', function(msg) {
+                    log(msg.time, '&lt;' + escapeHtml(msg.nick) + '&gt; ' +
+                    hotLink(escapeHtml(msg.message)));
                 });
                 return false;
             });
