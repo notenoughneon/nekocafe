@@ -10,6 +10,10 @@
             html, body, .container {
                 height: 100%;
             }
+            body.dark {
+                color: #d0d0d0;
+                background-color: #313131;
+            }
             #loginScreen {
                 width: 100%;
                 padding-top: 50px;
@@ -28,8 +32,14 @@
                 padding: 0;
                 margin-bottom: 70px;
             }
-            ul time {
+            #messages time {
                 color: #bbbbbb;
+            }
+            #chatForm .input-group {
+                width: 80%;
+            }
+            #chatForm .input-group-btn {
+                width: 1%;
             }
         </style>
     </head>
@@ -51,22 +61,26 @@
             </div>
             <nav class="navbar navbar-default navbar-fixed-bottom">
             <div class="container">
-                <div class="row">
-                    <form id="chatForm" class="navbar-form" action="">
-                        <div class="input-group col-sm-12 col-md-9">
-                            <input id="message" class="form-control" placeholder="Enter message" autocomplete="off" />
-                            <span class="input-group-btn">
-                                <button class="btn btn-default">Send</button>
-                            </span>
-                        </div>
-                    </form>
-                </div>
+                <form id="chatForm" class="navbar-form" action="">
+                    <div class="input-group">
+                        <input id="message" class="form-control" placeholder="Enter message" autocomplete="off" />
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="button">Send</button>
+                        </span>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            <input id="darkMode" type="checkbox">Dark mode
+                        </label>
+                    </div>
+                </form>
             </div>
             </nav>
         </div>
 
         <script src="/socket.io/socket.io.js"></script>
         <script src="/jquery-2.1.3.min.js"></script>
+        <script src="/bootstrap.min.js"></script>
         <script>
             var socket;
 
@@ -79,6 +93,18 @@
             }).focus(function() {
                 isBlurred = false;
                 $('title').text('nekocafe');
+            });
+
+            $('#darkMode').click(function() {
+                if (this.checked) {
+                    $('body').addClass('dark');
+                    $('nav').removeClass('navbar-default');
+                    $('nav').addClass('navbar-inverse');
+                    } else {
+                    $('body').removeClass('dark');
+                    $('nav').addClass('navbar-default');
+                    $('nav').removeClass('navbar-inverse');
+                }
             });
 
             function escapeHtml(s) {
