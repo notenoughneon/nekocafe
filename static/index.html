@@ -60,6 +60,11 @@
                         <input id="darkMode" type="checkbox">Dark mode
                     </label>
                 </div>
+                <div class="checkbox">
+                    <label>
+                        <input id="notifications" type="checkbox">Notifications
+                    </label>
+                </div>
                 <button class="btn btn-lg btn-success btn-block">Connect</button>
             </form>
         </div>
@@ -91,6 +96,8 @@
             var isBlurred = false;
             var newCount = 0;
 
+            var notifications = false;
+
             $(window).blur(function() {
                 isBlurred = true;
                 newCount = 0;
@@ -110,6 +117,21 @@
                     $('nav').removeClass('navbar-inverse');
                 }
             });
+
+            $('#notifications').click(function() {
+                if (this.checked) {
+                    Notification.requestPermission();
+                    notifications = true;
+                    } else {
+                    notifications = false;
+                }
+            });
+
+            function notify(text) {
+                if (notifications) {
+                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: text});
+                }
+            }
 
             function escapeHtml(s) {
                 return s.replace(/&/g,'&amp;').
@@ -183,8 +205,8 @@
                     log(msg.time, '* ' + escapeHtml(msg.message));
                 });
                 socket.on('message', function(msg) {
-                    log(msg.time, '&lt;' + escapeHtml(msg.nick) + '&gt; ' +
-                    hotLink(escapeHtml(msg.message)));
+                    log(msg.time, escapeHtml('<' + msg.nick + '> ') + hotLink(escapeHtml(msg.message)));
+                    notify('<' + msg.nick + '> ' + msg.message);
                 });
                 return false;
             });
