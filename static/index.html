@@ -139,7 +139,7 @@
                 replace(/>/g,'&gt;');
             }
 
-            var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~-]*)?)/ig;
+            var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&#~()-]*)?)/ig;
 
             function hotLink(s) {
                 return s.replace(urlRe, '<a href="$1" target="_blank" tabindex="-1">$1</a>');
