@@ -40,6 +40,11 @@ function broadcast(message) {
     });
 }
 
+function who() {
+    return 'Nekoes online: ' +
+        nekoes.map(function(n){return n.nick;}).join(', ') + '.';
+}
+
 io.on('connection', function(socket) {
     var me;
     socket.on('nick', function(nick) {
@@ -48,9 +53,7 @@ io.on('connection', function(socket) {
             nekoes.push(me);
             broadcast(new SystemMessage(me.nick + ' joined.'));
             unicast(socket, new SystemMessage('Welcome to Neko Cafe.'));
-            unicast(socket, new SystemMessage('Nekoes online: ' +
-                nekoes.map(function(n){return n.nick;}).join(', ') +
-                '.'));
+            unicast(socket, new SystemMessage(who()));
         }
     });
     socket.on('disconnect', function() {
@@ -61,6 +64,15 @@ io.on('connection', function(socket) {
     });
     socket.on('message', function(msg) {
         broadcast(new Message(me.nick, msg));
+    });
+    socket.on('command', function(cmd) {
+        if (cmd.type === 'who') {
+            unicast(socket, new SystemMessage(who()));
+        } else {
+            unicast(socket, new SystemMessage('Unknown command ' +
+                    cmd.type));
+        }
+
     });
 });
 

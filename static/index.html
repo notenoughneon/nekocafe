@@ -189,8 +189,14 @@
             }
 
             $('#chatForm').submit(function() {
-                socket.emit('message', $('#message').val());
+                var msg = $('#message').val();
                 $('#message').val('');
+                var cmd = msg.match(/^\/(\w+)\s*(.*)/);
+                if (cmd !== null) {
+                    socket.emit('command', {type: cmd[1], params: cmd[2]});
+                    } else {
+                    socket.emit('message', msg);
+                }
                 return false;
             });
 
