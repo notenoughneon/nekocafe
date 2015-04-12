@@ -106,6 +106,10 @@
                 $('title').text('nekocafe');
             });
 
+            //firefox auto-fill workaround
+            $('#darkMode').prop('checked', false);
+            $('#notifications').prop('checked', false);
+
             $('#darkMode').click(function() {
                 if (this.checked) {
                     $('body').addClass('dark');
