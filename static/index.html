@@ -143,7 +143,7 @@
                 replace(/>/g,'&gt;');
             }
 
-            var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(\/[\w\.\/%+?=&,;#~()-]*)?)/ig;
+            var urlRe = /(https?:\/\/[\w-]+(\.[\w-]+)*(:[0-9]+)?(\/[\w\.\/%+?=&,;@#~()-]*)?)/ig;
 
             function replacer(match, p1) {
                 // un-html-escape &'s in url
