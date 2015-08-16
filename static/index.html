@@ -187,7 +187,10 @@
             window.setInterval(liveTime, 1000 * 10);
 
             function log(time, text) {
-                var time = new Date(time);
+                if (typeof(time) === 'number')
+                    time = new Date(time);
+                else
+                    time = new Date();
                 $('#messages').append($('<li class="row">').
                 append($('<time class="col-xs-2 col-sm-1">').
                 attr('datetime', time.toISOString()).
@@ -217,9 +220,18 @@
             $('#loginForm').submit(function() {
                 $('#loginScreen').hide();
                 $('#chatScreen').show();
+                var disconnects = 0;
                 socket = io();
                 socket.on('connect', function() {
                     socket.emit('nick', $('#nick').val());
+                });
+                socket.on('disconnect', function() {
+                    disconnects++;
+                    log(null, '* Disconnected.');
+                    if (disconnects >= 3) {
+                        log(null, '*** Reload the page to log in.');
+                        socket.destroy();
+                    }
                 });
                 socket.on('system', function(msg) {
                     log(msg.time, '* ' + escapeHtml(msg.message));
