@@ -140,6 +140,15 @@
                 }
             }
 
+            function parseQuery(s) {
+                var re = /([^?=&]+)=([^?=&]+)/g;
+                var m;
+                var q = {};
+                while ((m = re.exec(s)) !== null)
+                    q[m[1]] = m[2];
+                return q;
+            }
+
             function escapeHtml(s) {
                 return s.replace(/&/g,'&amp;').
                 replace(/</g,'&lt;').
@@ -244,6 +253,16 @@
                     notify('<' + msg.nick + '> ' + msg.message);
                 });
                 return false;
+            });
+
+            $(function() {
+                var query = parseQuery(window.location.search);
+                if (query.name != null)
+                    $('#nick').val(query.name);
+                if (query.darkmode)
+                    $('#darkMode').prop('checked', true);
+                if (query.notifications)
+                    $('#notifications').prop('checked', true);
             });
         </script>
     </body>
