@@ -1,14 +1,28 @@
 var express = require('express');
+var fs = require('fs');
 var app = express();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+var http = require('http');
+var https = require('https');
 
 if (process.argv.length < 3) {
-    console.log('Usage: node nekocafe.js [port]');
+    console.log('Usage: node nekocafe.js port [key.pem cert.pem]');
     process.exit(1);
 }
 
 var port = process.argv[2];
+
+if (process.argv.length > 3)
+{
+    var key = fs.readFileSync(process.argv[3]);
+    var cert = fs.readFileSync(process.argv[4]);
+    var server = https.createServer({key: key, cert: cert}, app);
+}
+else
+{
+    var server = http.createServer(app);
+}
+
+var io = require('socket.io')(server);
 
 app.use(express.static('static'));
 
@@ -76,7 +90,7 @@ io.on('connection', function(socket) {
     });
 });
 
-var server = http.listen(port, function () {
+var server = server.listen(port, function () {
     var address = server.address();
     console.log('Listening on %s:%s', address.address,
         address.port);
