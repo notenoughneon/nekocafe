@@ -33,15 +33,16 @@ var Neko = function(socket, nick) {
 };
 
 var nekoes = [];
+var messages = [];
 
 var SystemMessage = function(msg) {
     this.type = 'system';
     this.value = {time: Date.now(), message: msg};
 }
 
-var Message = function (nick, msg) {
+var Message = function (id, nick, msg) {
     this.type = 'message';
-    this.value = {time: Date.now(), nick: nick, message: msg};
+    this.value = {time: Date.now(), id: id, nick: nick, message: msg};
 }
 
 function unicast(socket, message) {
@@ -76,8 +77,13 @@ io.on('connection', function(socket) {
             broadcast(new SystemMessage(me.nick + ' left.'));
         }
     });
+    socket.on('replay', function(id) {
+        messages.slice(id).forEach(function(msg) {unicast(socket, msg);});
+    });
     socket.on('message', function(msg) {
-        broadcast(new Message(me.nick, msg));
+        var message = new Message(messages.length, me.nick, msg);
+        messages.push(message);
+        broadcast(message);
     });
     socket.on('command', function(cmd) {
         if (cmd.type === 'who') {

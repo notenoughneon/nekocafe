@@ -222,7 +222,12 @@
                 $('#message').val('');
                 var cmd = msg.match(/^\/(\w+)\s*(.*)/);
                 if (cmd !== null) {
-                    socket.emit('command', {type: cmd[1], params: cmd[2]});
+                    if (cmd[1] == 'disconnect')
+                        socket.disconnect();
+                    else if (cmd[1] == 'connect')
+                        socket.connect();
+                    else
+                        socket.emit('command', {type: cmd[1], params: cmd[2]});
                     } else {
                     socket.emit('message', msg);
                 }
@@ -233,9 +238,13 @@
                 $('#loginScreen').hide();
                 $('#chatScreen').show();
                 var disconnects = 0;
+                var lastMsgId = 0;
                 socket = io();
                 socket.on('connect', function() {
                     socket.emit('nick', $('#nick').val());
+                });
+                socket.on('reconnect', function() {
+                    socket.emit('replay', lastMsgId);
                 });
                 socket.on('disconnect', function() {
                     disconnects++;
@@ -249,6 +258,7 @@
                     log(msg.time, '* ' + escapeHtml(msg.message));
                 });
                 socket.on('message', function(msg) {
+                    lastMsgId = msg.id;
                     log(msg.time, escapeHtml('<' + msg.nick + '> ') + hotLink(escapeHtml(msg.message)));
                     notify('<' + msg.nick + '> ' + msg.message);
                 });
