@@ -238,11 +238,10 @@
                 $('#loginScreen').hide();
                 $('#chatScreen').show();
                 var disconnects = 0;
-                var lastMsgId = 0;
+                var lastMsgId = -1;
                 socket = io();
                 socket.on('connect', function() {
-                    socket.emit('nick', $('#nick').val());
-                    socket.emit('replay', lastMsgId + 1);
+                    socket.emit('nick', {nick: $('#nick').val(), lastMsg: lastMsgId});
                 });
                 socket.on('disconnect', function() {
                     disconnects++;

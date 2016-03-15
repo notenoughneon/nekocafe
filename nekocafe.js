@@ -64,19 +64,20 @@ function who() {
 }
 
 function getIndexById(id) {
-    var index = messages.find(function(elt, i) {
-        return elt.value.id === id;
-    });
-    if (index === undefined)
-        return 0;
+    for (var i = 0; i < messages.length; i++) {
+        if (messages[i].value.id === id)
+            return i;
+    }
+    return 0;
 }
 
 io.on('connection', function(socket) {
     var me;
-    socket.on('nick', function(nick) {
+    socket.on('nick', function(params) {
         if (me === undefined) {
-            me = new Neko(socket, nick);
+            me = new Neko(socket, params.nick);
             nekoes.push(me);
+            messages.slice(getIndexById(params.lastMsg) + 1).forEach(function(msg) {unicast(socket, msg);});
             broadcast(new SystemMessage(me.nick + ' joined.'));
             unicast(socket, new SystemMessage('Welcome to Neko Cafe.'));
             unicast(socket, new SystemMessage(who()));
@@ -87,9 +88,6 @@ io.on('connection', function(socket) {
             nekoes = nekoes.filter(function(n) {return n.id !== me.id;});
             broadcast(new SystemMessage(me.nick + ' left.'));
         }
-    });
-    socket.on('replay', function(id) {
-        messages.slice(getIndexById(id)).forEach(function(msg) {unicast(socket, msg);});
     });
     socket.on('message', function(msg) {
         var message = new Message(nextMsgId++, me.nick, msg);
@@ -114,28 +112,3 @@ var server = server.listen(port, function () {
     console.log('Listening on %s:%s', address.address,
         address.port);
 });
-
-// array.find polyfill
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find#Polyfill
-if (!Array.prototype.find) {
-  Array.prototype.find = function(predicate) {
-    if (this === null) {
-      throw new TypeError('Array.prototype.find called on null or undefined');
-    }
-    if (typeof predicate !== 'function') {
-      throw new TypeError('predicate must be a function');
-    }
-    var list = Object(this);
-    var length = list.length >>> 0;
-    var thisArg = arguments[1];
-    var value;
-
-    for (var i = 0; i < length; i++) {
-      value = list[i];
-      if (predicate.call(thisArg, value, i, list)) {
-        return value;
-      }
-    }
-    return undefined;
-  };
-}
