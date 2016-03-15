@@ -242,8 +242,6 @@
                 socket = io();
                 socket.on('connect', function() {
                     socket.emit('nick', $('#nick').val());
-                });
-                socket.on('reconnect', function() {
                     socket.emit('replay', lastMsgId + 1);
                 });
                 socket.on('disconnect', function() {
