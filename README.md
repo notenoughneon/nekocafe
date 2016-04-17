@@ -1,14 +1,16 @@
 # nekocafe
-A toy chat server
+Minimal websocket chat
 
-* connect with any websocket capable web browser
-* ios/android support (sort of)
 * url hotlinking
 * web notifications
+* somewhat ios/android compatible
 
-Usage:
+## Installation
 ```
-C:\>node nekocafe.js <portnumber>
+npm install -g nekocafe
 ```
 
-![screenshot](nekocafe.png)
+## Usage
+```
+nekocafe <portnumber> [key.pem cert.pem]
+```
