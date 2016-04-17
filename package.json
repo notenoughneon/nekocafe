@@ -1,9 +1,12 @@
 {
   "name": "nekocafe",
   "version": "0.1.0",
-  "description": "Minimal websocket chat server",
+  "description": "Minimal websocket chat",
   "license": "MIT",
-  "main": "nekocafe.js",
+  "preferGlobal": true,
+  "directories": {
+    "bin": "./bin"
+  },
   "dependencies": {
     "express": "^4.13.4",
     "socket.io": "^1.4.5"
