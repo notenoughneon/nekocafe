@@ -8,10 +8,13 @@
     "bin": "./bin"
   },
   "dependencies": {
+    "choo": "^2.3.1",
     "express": "^4.13.4",
     "socket.io": "^1.4.5"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "browserify": "^13.0.1"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/notenoughneon/nekocafe.git"
