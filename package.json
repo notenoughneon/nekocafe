@@ -4,6 +4,9 @@
   "description": "Minimal websocket chat",
   "license": "MIT",
   "preferGlobal": true,
+  "scripts": {
+    "build": "node_modules/.bin/browserify client.js -o static/bundle.js"
+  },
   "directories": {
     "bin": "./bin"
   },
