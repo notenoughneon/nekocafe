@@ -1,0 +1,41 @@
+html, body, .container {
+    height: 100%;
+}
+body.dark {
+    color: #d0d0d0;
+    background-color: #313131;
+}
+#loginScreen {
+    color: #d0d0d0;
+    width: 100%;
+    padding-top: 50px;
+    background-color: #202020;
+}
+#loginForm {
+    max-width: 250px;
+    margin: 0 auto;
+}
+#chatScreen {
+    display: none;
+}
+#chatScreen ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    margin-bottom: 80px;
+}
+#messages {
+    word-wrap: break-word;
+}
+#messages time {
+    color: #bbbbbb;
+}
+#chatForm {
+    padding: 0px;
+}
+#chatForm .input-group {
+    width: 100%;
+}
+#chatForm .input-group-btn {
+    width: 1%;
+}
