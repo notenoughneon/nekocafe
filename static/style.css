@@ -15,9 +15,6 @@ body.dark {
     max-width: 250px;
     margin: 0 auto;
 }
-#chatScreen {
-    display: none;
-}
 #chatScreen ul {
     list-style-type: none;
     margin: 0;

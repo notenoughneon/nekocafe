@@ -9,43 +9,8 @@
         <link href="style.css" rel="stylesheet">
     </head>
     <body>
-        <div id="loginScreen" class="container">
-            <form id="loginForm">
-                <div class="form-group">
-                <input id="nick" class="form-control input-lg"
-                placeholder="Enter neko name" type="text" required
-                autofocus />
-                </div>
-                <div class="checkbox">
-                    <label>
-                        <input id="darkMode" type="checkbox">Dark mode
-                    </label>
-                </div>
-                <div class="checkbox">
-                    <label>
-                        <input id="notifications" type="checkbox">Notifications
-                    </label>
-                </div>
-                <button class="btn btn-lg btn-success btn-block">Connect</button>
-            </form>
-        </div>
 
         <div id="chatScreen">
-            <div class="container">
-                <ul id="messages"></ul>
-            </div>
-            <nav class="navbar navbar-default navbar-fixed-bottom">
-            <div class="container">
-                <form id="chatForm" class="navbar-form" action="">
-                    <div class="input-group">
-                        <input id="message" class="form-control" placeholder="Enter message" autocomplete="off" />
-                        <span class="input-group-btn">
-                            <button class="btn btn-default" type="submit">Send</button>
-                        </span>
-                    </div>
-                </form>
-            </div>
-            </nav>
         </div>
 
         <script src="/socket.io/socket.io.js"></script>
