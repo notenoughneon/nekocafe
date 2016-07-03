@@ -12,6 +12,12 @@ app.model({
         receiveMessage: (action, state) => (xtend(state, {messages: [...state.messages, action.message]})),
         setTime: (action, state) => (xtend(state, {now: action.time}))
     },
+    effects: {
+        receiveMessage: (action, state) => {
+            let body = document.getElementsByTagName('body')[0];
+            body.scrollTop = body.scrollHeight;
+        }
+    },
     subscriptions: [
         send => setInterval(() => send('setTime', {time: new Date()}), 5000)
     ]
