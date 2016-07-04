@@ -2,6 +2,9 @@
 const xtend = require('xtend');
 const choo = require('choo');
 const app = choo();
+const util = require('./util');
+
+var socket;
 
 app.model({
     state: {
@@ -13,38 +16,40 @@ app.model({
         setTime: (action, state) => (xtend(state, {now: action.time}))
     },
     effects: {
+        sendMessage: (action, state) => {
+            socket.emit('message', action.text);
+        },
         receiveMessage: (action, state) => {
             let body = document.getElementsByTagName('body')[0];
             body.scrollTop = body.scrollHeight;
         }
     },
     subscriptions: [
-        send => setInterval(() => send('setTime', {time: new Date()}), 5000)
+        send => setInterval(() => send('setTime', {time: new Date()}), 5000),
+        send => {
+            socket = io();
+            socket.on('connect', function() {
+                socket.emit('nick', {nick: 'testuser', lastMsg: 0});
+            });
+            socket.on('disconnect', function() {
+                send('receiveMessage', {message: {time: new Date(), text: '* Disconnected.'}});
+            });
+            socket.on('system', function(msg) {
+                send('receiveMessage', {message: {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}});
+            });
+            socket.on('message', function(msg) {
+                send('receiveMessage', {message: {
+                    time: new Date(msg.time),
+                    text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
+                }});
+            });
+        }
     ]
 });
 
-function relTime(now, dt) {
-    var month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var delta = now.getTime() - dt.getTime();
-    if (delta < 1000*60) {
-        return Math.floor(Math.max(0,delta/(1000))) + 's';
-    } else if (delta < 1000*60*60) {
-        return Math.floor(Math.max(0,delta/(1000*60))) + 'm';
-    } else if (delta < 1000*60*60*24) {
-        return Math.floor(delta/(1000*60*60)) + 'h';
-    } else if (delta < 1000*60*60*24*30) {
-        return Math.floor(delta/(1000*60*60*24)) + 'd';
-    } else if (delta < 1000*60*60*24*365) {
-        return dt.getDate() + ' ' + month[dt.getMonth()];
-    } else {
-        return dt.getDate() + ' ' + month[dt.getMonth()]
-            + ' ' + dt.getFullYear();
-    }
-}
-
 const messageView = (now, {time, text}) => choo.view`
     <li class="row">
-        <span class="col-xs-2 col-sm-1">${relTime(now, time)}</span>
+        <span class="col-xs-2 col-sm-1">${util.relTime(now, time)}</span>
         <span class="col-xs-10 col-sm-11">${text}</span>
     </li>
 `;
@@ -60,7 +65,7 @@ const messageBox = (send) => {
     function onSubmit(e) {
         e.preventDefault();
         var data = new FormData(e.target);
-        send('receiveMessage', {message: {time: new Date(), text: data.get('message')}});
+        send('sendMessage', {text: data.get('message')});
         e.target.reset();
     }
     return choo.view`
