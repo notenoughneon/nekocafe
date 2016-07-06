@@ -2,8 +2,9 @@
 
 const xtend = require('xtend');
 const choo = require('choo');
-const app = choo();
+const html = require('choo/html');
 const util = require('./util');
+const app = choo();
 
 var socket;
 
@@ -19,10 +20,6 @@ app.model({
     effects: {
         sendMessage: (action, state) => {
             socket.emit('message', action.text);
-        },
-        receiveMessage: (action, state) => {
-            let body = document.getElementsByTagName('body')[0];
-            body.scrollTop = body.scrollHeight;
         }
     },
     subscriptions: [
@@ -48,14 +45,19 @@ app.model({
     ]
 });
 
-const messageView = (now, {time, text}) => choo.view`
-    <li class="row">
+function scrollDown(el) {
+    let body = document.getElementsByTagName('body')[0];
+    body.scrollTop = body.scrollHeight;
+}
+
+const messageView = (now, {time, text}) => html`
+    <li class="row" onload=${scrollDown}>
         <span class="col-xs-2 col-sm-1">${util.relTime(now, time)}</span>
         <span class="col-xs-10 col-sm-11">${text}</span>
     </li>
 `;
 
-const messagesView  = ({now, messages}) => choo.view`
+const messagesView  = ({now, messages}) => html`
     <ul id="messages">
         ${messages.map(message => messageView(now, message))}
     </ul>
@@ -69,7 +71,7 @@ const messageBox = (send) => {
         send('sendMessage', {text: data.get('message')});
         e.target.reset();
     }
-    return choo.view`
+    return html`
         <nav class="navbar navbar-default navbar-fixed-bottom">
             <div class="container">
                 <form id="chatForm" class="navbar-form" onsubmit=${onSubmit}>
@@ -85,7 +87,7 @@ const messageBox = (send) => {
     `;
 }
 
-const mainView = (params, state, send) => choo.view`
+const mainView = (params, state, send) => html`
     <div class="container">
         ${messagesView(state)}
         ${messageBox(send)}
@@ -273,7 +275,7 @@ document.getElementById('chatScreen').appendChild(tree);
 //         $('#notifications').prop('checked', true);
 // });
 
-},{"./util":29,"choo":5,"xtend":25}],2:[function(require,module,exports){
+},{"./util":31,"choo":8,"choo/html":7,"xtend":27}],2:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -634,9 +636,227 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":22}],3:[function(require,module,exports){
+},{"util/":24}],3:[function(require,module,exports){
+const mutate = require('xtend/mutable')
+const assert = require('assert')
+const xtend = require('xtend')
+
+module.exports = dispatcher
+
+// initialize a new barracks instance
+// obj -> obj
+function dispatcher (handlers) {
+  handlers = handlers || {}
+  assert.equal(typeof handlers, 'object', 'barracks: handlers should be undefined or an object')
+
+  const onError = wrapOnError(handlers.onError || defaultOnError)
+  const onAction = handlers.onAction
+  const onStateChange = handlers.onStateChange
+
+  assert.ok(!handlers.onError || typeof handlers.onError === 'function', 'barracks: onError should be undefined or a function')
+  assert.ok(!onAction || typeof onAction === 'function', 'barracks: onAction should be undefined or a function')
+  assert.ok(!onStateChange || typeof onStateChange === 'function', 'barracks: onStateChange should be undefined or a function')
+
+  var reducersCalled = false
+  var effectsCalled = false
+  var stateCalled = false
+  var subsCalled = false
+
+  const subscriptions = start._subscriptions = {}
+  const reducers = start._reducers = {}
+  const effects = start._effects = {}
+  const models = start._models = []
+  var _state = {}
+
+  start.model = setModel
+  start.state = getState
+  start.start = start
+  return start
+
+  // push a model to be initiated
+  // obj -> null
+  function setModel (model) {
+    assert.equal(typeof model, 'object', 'barracks.store.model: model should be an object')
+    models.push(model)
+  }
+
+  // get the current state from the store
+  // obj? -> obj
+  function getState (opts) {
+    opts = opts || {}
+    assert.equal(typeof opts, 'object', 'barracks.store.state: opts should be an object')
+    if (opts.state) {
+      const initialState = {}
+      const nsState = {}
+      models.forEach(function (model) {
+        const ns = model.namespace
+        if (ns) {
+          nsState[ns] = {}
+          apply(ns, model.state, nsState)
+          nsState[ns] = xtend(nsState[ns], opts.state[ns])
+        } else {
+          apply(model.namespace, model.state, initialState)
+        }
+      })
+      return xtend(_state, xtend(opts.state, nsState))
+    } else if (opts.freeze === false) {
+      return xtend(_state)
+    } else {
+      return Object.freeze(xtend(_state))
+    }
+  }
+
+  // initialize the store handlers, get the send() function
+  // obj? -> fn
+  function start (opts) {
+    opts = opts || {}
+    assert.equal(typeof opts, 'object', 'barracks.store.start: opts should be undefined or an object')
+
+    // register values from the models
+    models.forEach(function (model) {
+      const ns = model.namespace
+      if (!stateCalled && model.state && opts.state !== false) {
+        apply(ns, model.state, _state)
+      }
+      if (!reducersCalled && model.reducers && opts.reducers !== false) {
+        apply(ns, model.reducers, reducers)
+      }
+      if (!effectsCalled && model.effects && opts.effects !== false) {
+        apply(ns, model.effects, effects)
+      }
+      if (!subsCalled && model.subscriptions && opts.subscriptions !== false) {
+        apply(ns, model.subscriptions, subscriptions, createSend, onError)
+      }
+    })
+
+    if (!opts.noState) stateCalled = true
+    if (!opts.noReducers) reducersCalled = true
+    if (!opts.noEffects) effectsCalled = true
+    if (!opts.noSubscriptions) subsCalled = true
+
+    return createSend
+
+    // call an action from a view
+    // (str, bool?) -> (str, any?, fn?) -> null
+    function createSend (selfName, callOnError) {
+      assert.equal(typeof selfName, 'string', 'barracks.store.start.createSend: selfName should be a string')
+      assert.ok(!callOnError || typeof callOnError === 'boolean', 'barracks.store.start.send: callOnError should be undefined or a boolean')
+
+      return function send (name, data, cb) {
+        if (!cb && !callOnError) {
+          cb = data
+          data = null
+        }
+        data = (typeof data === 'undefined' ? null : data)
+
+        assert.equal(typeof name, 'string', 'barracks.store.start.send: name should be a string')
+        assert.ok(!cb || typeof cb === 'function', 'barracks.store.start.send: cb should be a function')
+
+        const done = callOnError ? onErrorCallback : cb
+        _send(name, data, selfName, done)
+
+        function onErrorCallback (err) {
+          err = err || null
+          if (err) {
+            onError(err, _state, function createSend (selfName) {
+              return function send (name, data) {
+                assert.equal(typeof name, 'string', 'barracks.store.start.send: name should be a string')
+                data = (typeof data === 'undefined' ? null : data)
+                _send(name, data, selfName, done)
+              }
+            })
+          }
+        }
+      }
+    }
+
+    // call an action
+    // (str, str, any, fn) -> null
+    function _send (name, data, caller, cb) {
+      assert.equal(typeof name, 'string', 'barracks._send: name should be a string')
+      assert.equal(typeof caller, 'string', 'barracks._send: caller should be a string')
+      assert.equal(typeof cb, 'function', 'barracks._send: cb should be a function')
+
+      setTimeout(function () {
+        var reducersCalled = false
+        var effectsCalled = false
+        const newState = xtend(_state)
+
+        if (onAction) onAction(data, _state, name, caller, createSend)
+
+        // validate if a namespace exists. Namespaces are delimited by ':'.
+        var actionName = name
+        if (/:/.test(name)) {
+          const arr = name.split(':')
+          var ns = arr.shift()
+          actionName = arr.join(':')
+        }
+
+        const _reducers = ns ? reducers[ns] : reducers
+        if (_reducers && _reducers[actionName]) {
+          if (ns) {
+            const reducedState = _reducers[actionName](data, _state[ns])
+            mutate(newState[ns], xtend(_state[ns], reducedState))
+          } else {
+            mutate(newState, reducers[actionName](data, _state))
+          }
+          reducersCalled = true
+          if (onStateChange) onStateChange(data, newState, _state, actionName, createSend)
+          _state = newState
+          cb()
+        }
+
+        const _effects = ns ? effects[ns] : effects
+        if (!reducersCalled && _effects && _effects[actionName]) {
+          const send = createSend('effect: ' + name)
+          if (ns) _effects[actionName](data, _state[ns], send, cb)
+          else _effects[actionName](data, _state, send, cb)
+          effectsCalled = true
+        }
+
+        if (!reducersCalled && !effectsCalled) {
+          throw new Error('Could not find action ' + actionName)
+        }
+      }, 0)
+    }
+  }
+}
+
+// compose an object conditionally
+// optionally contains a namespace
+// which is used to nest properties.
+// (str, obj, obj, fn?) -> null
+function apply (ns, source, target, createSend, done) {
+  Object.keys(source).forEach(function (key) {
+    if (ns) {
+      if (!target[ns]) target[ns] = {}
+      target[ns][key] = source[key]
+    } else {
+      target[key] = source[key]
+    }
+    if (createSend && done) {
+      const send = createSend('subscription: ' + ns ? ns + ':' + key : key)
+      source[key](send, done)
+    }
+  })
+}
+
+// handle errors all the way at the top of the trace
+// err? -> null
+function defaultOnError (err) {
+  throw err
+}
+
+function wrapOnError (onError) {
+  return function onErrorWrap (err) {
+    if (err) onError(err)
+  }
+}
+
+},{"assert":2,"xtend":27,"xtend/mutable":28}],4:[function(require,module,exports){
 var document = require('global/document')
 var hyperx = require('hyperx')
+var onload = require('on-load')
 
 var SVGNS = 'http://www.w3.org/2000/svg'
 var BOOL_PROPS = {
@@ -688,6 +908,19 @@ function belCreateElement (tag, props, children) {
     el = document.createElementNS(ns, tag)
   } else {
     el = document.createElement(tag)
+  }
+
+  // If adding onload events
+  if (props.onload || props.onunload) {
+    var load = props.onload || function () {}
+    var unload = props.onunload || function () {}
+    onload(el, function bel_onload () {
+      load(el)
+    }, function bel_onunload () {
+      unload(el)
+    })
+    delete props.onload
+    delete props.onunload
   }
 
   // Create the properties
@@ -759,29 +992,157 @@ function belCreateElement (tag, props, children) {
 module.exports = hyperx(belCreateElement)
 module.exports.createElement = belCreateElement
 
-},{"global/document":6,"hyperx":10}],4:[function(require,module,exports){
+},{"global/document":10,"hyperx":14,"on-load":17}],5:[function(require,module,exports){
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+(function () {
+  try {
+    cachedSetTimeout = setTimeout;
+  } catch (e) {
+    cachedSetTimeout = function () {
+      throw new Error('setTimeout is not defined');
+    }
+  }
+  try {
+    cachedClearTimeout = clearTimeout;
+  } catch (e) {
+    cachedClearTimeout = function () {
+      throw new Error('clearTimeout is not defined');
+    }
+  }
+} ())
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = cachedSetTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    cachedClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        cachedSetTimeout(drainQueue, 0);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],7:[function(require,module,exports){
+module.exports = require('yo-yo')
+
+},{"yo-yo":29}],8:[function(require,module,exports){
 const history = require('sheet-router/history')
 const sheetRouter = require('sheet-router')
 const document = require('global/document')
+const onReady = require('document-ready')
 const href = require('sheet-router/href')
 const hash = require('sheet-router/hash')
 const hashMatch = require('hash-match')
-const sendAction = require('send-action')
-const mutate = require('xtend/mutable')
+const barracks = require('barracks')
 const assert = require('assert')
 const xtend = require('xtend')
 const yo = require('yo-yo')
 
-choo.view = yo
 module.exports = choo
 
 // framework for creating sturdy web applications
 // null -> fn
-function choo () {
-  const _models = []
-  var _router = null
+function choo (opts) {
+  opts = opts || {}
+
+  const _store = start._store = barracks(xtend(opts, { onStateChange: render }))
+  var _router = start._router = null
+  var _defaultRoute = null
+  var _rootNode = null
+  var _routes = null
 
   start.toString = toString
   start.router = router
@@ -793,232 +1154,164 @@ function choo () {
   // render the application to a string
   // (str, obj) -> str
   function toString (route, serverState) {
-    const initialState = {}
-    const nsState = {}
+    serverState = serverState || {}
+    assert.equal(typeof route, 'string', 'choo.app.toString: route must be a string')
+    assert.equal(typeof serverState, 'object', 'choo.app.toString: serverState must be an object')
+    _store.start({ subscriptions: false, reducers: false, effects: false })
 
-    _models.forEach(function (model) {
-      const ns = model.namespace
-      if (ns) {
-        if (!nsState[ns]) nsState[ns] = {}
-        apply(ns, model.state, nsState)
-        nsState[ns] = xtend(nsState[ns], serverState[ns])
-      } else {
-        apply(model.namespace, model.state, initialState)
+    const state = _store.state({ state: serverState })
+    const router = createRouter(_defaultRoute, _routes, createSend)
+    const tree = router(route, state)
+    return tree.outerHTML || tree.toString()
+
+    function createSend () {
+      return function send () {
+        assert.fail('choo: send() cannot be called from Node')
       }
-    })
-
-    const state = xtend(initialState, xtend(serverState, nsState))
-    const tree = _router(route, state, function () {
-      throw new Error('send() cannot be called on the server')
-    })
-
-    return tree.toString()
+    }
   }
 
   // start the application
   // (str?, obj?) -> DOMNode
-  function start (rootId, opts) {
-    if (!opts && typeof rootId !== 'string') {
-      opts = rootId
-      rootId = null
+  function start (selector, startOpts) {
+    if (!startOpts && typeof selector !== 'string') {
+      startOpts = selector
+      selector = null
     }
-    opts = opts || {}
-    const name = opts.name || 'choo'
-    const initialState = {}
-    const reducers = {}
-    const effects = {}
+    startOpts = startOpts || {}
 
-    _models.push(appInit(opts))
-    _models.forEach(function (model) {
-      if (model.state) apply(model.namespace, model.state, initialState)
-      if (model.reducers) apply(model.namespace, model.reducers, reducers)
-      if (model.effects) apply(model.namespace, model.effects, effects)
-    })
+    _store.model(appInit(startOpts))
+    const createSend = _store.start(startOpts)
+    _router = start._router = createRouter(_defaultRoute, _routes, createSend)
+    const state = _store.state({state: {}})
 
-    // send() is used to trigger actions inside
-    // views, effects and subscriptions
-    const send = sendAction({
-      onaction: handleAction,
-      onchange: onchange,
-      state: initialState
-    })
-
-    // subscriptions are loaded after sendAction() is called
-    // because they both need access to send() and can't
-    // react to actions (read-only) - also wait on DOM to
-    // be loaded
-    document.addEventListener('DOMContentLoaded', function () {
-      _models.forEach(function (model) {
-        if (model.subscriptions) {
-          assert.ok(Array.isArray(model.subscriptions), 'subs must be an arr')
-          model.subscriptions.forEach(function (sub) {
-            sub(send)
-          })
-        }
-      })
-    })
-
-    // If an id is provided, the application will rehydrate
-    // on the node. If no id is provided it will return
-    // a tree that's ready to be appended to the DOM.
-    //
-    // The rootId is determined to find the application root
-    // on update. Since the DOM nodes change between updates,
-    // we must call document.querySelector() to find the root.
-    // Use different names when loading multiple choo applications
-    // on the same page
-    if (rootId) {
-      document.addEventListener('DOMContentLoaded', function (event) {
-        rootId = rootId.replace(/^#/, '')
-
-        const oldTree = document.querySelector('#' + rootId)
-        assert.ok(oldTree, 'could not find node #' + rootId)
-
-        const newTree = _router(send.state().app.location, send.state(), send)
-
-        yo.update(oldTree, newTree)
-      })
-    } else {
-      rootId = name + '-root'
-      const tree = _router(send.state().app.location, send.state(), send)
-      tree.setAttribute('id', rootId)
+    if (!selector) {
+      const tree = _router(state.location.pathname, state)
+      _rootNode = tree
       return tree
+    } else {
+      onReady(function onReady () {
+        const oldTree = document.querySelector(selector)
+        assert.ok(oldTree, 'could not query selector: ' + selector)
+        const newTree = _router(state.location.pathname, state)
+        _rootNode = yo.update(oldTree, newTree)
+      })
+    }
+  }
+
+  // update the DOM after every state mutation
+  // (obj, obj, obj, str, fn) -> null
+  function render (data, state, prev, name, createSend) {
+    if (opts.onStateChange) {
+      opts.onStateChange(data, state, prev, name, createSend)
     }
 
-    // handle an action by either reducers, effects
-    // or both - return the new state when done
-    // (obj, obj, fn) -> obj
-    function handleAction (action, state, send) {
-      var reducersCalled = false
-      var effectsCalled = false
-      const newState = xtend(state)
-
-      // validate if a namespace exists. Namespaces
-      // are delimited by the first ':'. Perhaps
-      // we'll allow recursive namespaces in the
-      // future - who knows
-      if (/:/.test(action.type)) {
-        const arr = action.type.split(':')
-        var ns = arr.shift()
-        action.type = arr.join(':')
-      }
-
-      const _reducers = ns ? reducers[ns] : reducers
-      if (_reducers && _reducers[action.type]) {
-        if (ns) {
-          const reducedState = _reducers[action.type](action, state[ns])
-          if (!newState[ns]) newState[ns] = {}
-          mutate(newState[ns], xtend(state[ns], reducedState))
-        } else {
-          mutate(newState, reducers[action.type](action, state))
-        }
-        reducersCalled = true
-      }
-
-      const _effects = ns ? effects[ns] : effects
-      if (_effects && _effects[action.type]) {
-        if (ns) _effects[action.type](action, state[ns], send)
-        else _effects[action.type](action, state, send)
-        effectsCalled = true
-      }
-
-      if (!reducersCalled && !effectsCalled) {
-        throw new Error('Could not find action ' + action.type)
-      }
-
-      // allows (newState === oldState) checks
-      return (reducersCalled) ? newState : state
-    }
-
-    // update the DOM after every state mutation
-    // (obj, obj) -> null
-    function onchange (action, newState, oldState) {
-      if (newState === oldState) return
-      const oldTree = document.querySelector('#' + rootId)
-      assert.ok(oldTree, "Could not find DOM node '#" + rootId + "' to update")
-      const newTree = _router(newState.app.location, newState, send, oldState)
-      newTree.setAttribute('id', rootId)
-      yo.update(oldTree, newTree)
-    }
+    const newTree = _router(state.location.pathname, state, prev)
+    _rootNode = yo.update(_rootNode, newTree)
   }
 
   // register all routes on the router
   // (str?, [fn|[fn]]) -> obj
-  function router (defaultRoute, cb) {
-    _router = sheetRouter(defaultRoute, cb)
-    return _router
+  function router (defaultRoute, routes) {
+    _defaultRoute = defaultRoute
+    _routes = routes
   }
 
   // create a new model
   // (str?, obj) -> null
   function model (model) {
-    _models.push(model)
+    _store.model(model)
+  }
+
+  // create a new router with a custom `createRoute()` function
+  // (str?, obj, fn?) -> null
+  function createRouter (defaultRoute, routes, createSend) {
+    var prev = {}
+    return sheetRouter(defaultRoute, routes, createRoute)
+
+    function createRoute (routeFn) {
+      return function (route, inline, child) {
+        if (typeof inline === 'function') {
+          inline = wrap(inline, route)
+        }
+        return routeFn(route, inline, child)
+      }
+
+      function wrap (child, route) {
+        const send = createSend(route, true)
+        return function chooWrap (params, state) {
+          const nwPrev = prev
+          const nwState = prev = xtend(state, { params: params })
+          if (opts.freeze !== false) Object.freeze(nwState)
+          return child(nwState, nwPrev, send)
+        }
+      }
+    }
   }
 }
 
 // initial application state model
 // obj -> obj
 function appInit (opts) {
-  const initialLocation = (opts.hash === true)
-    ? hashMatch(document.location.hash)
-    : document.location.href
-
-  const model = {
-    namespace: 'app',
-    state: { location: initialLocation },
-    subscriptions: [],
-    reducers: {
-      // handle href links
-      location: function setLocation (action, state) {
-        return {
-          location: action.location.replace(/#.*/, '')
-        }
-      }
+  const loc = document.location
+  const state = { pathname: (opts.hash) ? hashMatch(loc.hash) : loc.href }
+  const reducers = {
+    setLocation: function setLocation (data, state) {
+      return { pathname: data.location.replace(/#.*/, '') }
     }
   }
-
   // if hash routing explicitly enabled, subscribe to it
+  const subs = {}
   if (opts.hash === true) {
     pushLocationSub(function (navigate) {
       hash(function (fragment) {
         navigate(hashMatch(fragment))
       })
-    })
-  // otherwise, subscribe to HTML5 history API
+    }, 'handleHash', subs)
   } else {
-    if (opts.history !== false) pushLocationSub(history)
-    // enable catching <a href=""></a> links
-    if (opts.href !== false) pushLocationSub(href)
+    if (opts.history !== false) pushLocationSub(history, 'handleHistory', subs)
+    if (opts.href !== false) pushLocationSub(href, 'handleHref', subs)
   }
 
-  return model
+  return {
+    namespace: 'location',
+    subscriptions: subs,
+    reducers: reducers,
+    state: state
+  }
 
   // create a new subscription that modifies
   // 'app:location' and push it to be loaded
-  // fn -> null
-  function pushLocationSub (cb) {
-    model.subscriptions.push(function (send) {
-      cb(function (href) {
-        send('app:location', { location: href })
+  // (fn, obj) -> null
+  function pushLocationSub (cb, key, model) {
+    model[key] = function (send, done) {
+      cb(function navigate (pathname) {
+        send('location:setLocation', { location: pathname }, done)
       })
-    })
+    }
   }
 }
 
-// compose an object conditionally
-// optionally contains a namespace
-// which is used to nest properties.
-// (str, obj, obj) -> null
-function apply (ns, source, target) {
-  Object.keys(source).forEach(function (key) {
-    if (ns) {
-      if (!target[ns]) target[ns] = {}
-      target[ns][key] = source[key]
-    } else target[key] = source[key]
+},{"assert":2,"barracks":3,"document-ready":9,"global/document":10,"hash-match":12,"sheet-router":22,"sheet-router/hash":19,"sheet-router/history":20,"sheet-router/href":21,"xtend":27,"yo-yo":29}],9:[function(require,module,exports){
+'use strict'
+
+var document = require('global/document')
+
+module.exports = document.addEventListener ? ready : noop
+
+function ready (callback) {
+  if (document.readyState === 'complete') {
+    return setTimeout(callback, 0)
+  }
+
+  document.addEventListener('DOMContentLoaded', function onLoad () {
+    callback()
   })
 }
 
-},{"assert":2,"global/document":6,"hash-match":8,"send-action":15,"sheet-router":19,"sheet-router/hash":16,"sheet-router/history":17,"sheet-router/href":18,"xtend":25,"xtend/mutable":26,"yo-yo":27}],6:[function(require,module,exports){
+function noop () {}
+
+},{"global/document":10}],10:[function(require,module,exports){
 (function (global){
 var topLevel = typeof global !== 'undefined' ? global :
     typeof window !== 'undefined' ? window : {}
@@ -1037,7 +1330,7 @@ if (typeof document !== 'undefined') {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"min-document":4}],7:[function(require,module,exports){
+},{"min-document":5}],11:[function(require,module,exports){
 (function (global){
 if (typeof window !== "undefined") {
     module.exports = window;
@@ -1050,7 +1343,7 @@ if (typeof window !== "undefined") {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],8:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = function hashMatch (hash, prefix) {
   var pre = prefix || '/';
   if (hash.length === 0) return pre;
@@ -1061,7 +1354,7 @@ module.exports = function hashMatch (hash, prefix) {
   else return hash.replace(pre, '');
 }
 
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports = attributeToProperty
 
 var transform = {
@@ -1082,7 +1375,7 @@ function attributeToProperty (h) {
   }
 }
 
-},{}],10:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var attrToProp = require('hyperscript-attribute-to-property')
 
 var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
@@ -1347,7 +1640,7 @@ var closeRE = RegExp('^(' + [
 ].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
 function selfClosing (tag) { return closeRE.test(tag) }
 
-},{"hyperscript-attribute-to-property":9}],11:[function(require,module,exports){
+},{"hyperscript-attribute-to-property":13}],15:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -1372,7 +1665,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // Create a range object for efficently rendering strings to elements.
 var range;
 
@@ -1777,9 +2070,14 @@ function morphdom(fromNode, toNode, options) {
 
                 if (curToNodeId) {
                     if ((savedEl = savedEls[curToNodeId])) {
-                        morphEl(savedEl, curToNodeChild, true);
-                        // We want to append the saved element instead
-                        curToNodeChild = savedEl;
+                        if (compareNodeNames(savedEl, curToNodeChild)) {
+                            morphEl(savedEl, curToNodeChild, true);
+                            // We want to append the saved element instead
+                            curToNodeChild = savedEl;
+                        } else {
+                            delete savedEls[curToNodeId];
+                            onNodeDiscarded(savedEl);
+                        }
                     } else {
                         // The current DOM element in the target tree has an ID
                         // but we did not find a match in any of the
@@ -1946,7 +2244,98 @@ function morphdom(fromNode, toNode, options) {
 
 module.exports = morphdom;
 
-},{}],13:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
+/* global MutationObserver */
+var document = require('global/document')
+var window = require('global/window')
+var watch = Object.create(null)
+var KEY_ID = 'onloadid' + (new Date() % 9e6).toString(36)
+var KEY_ATTR = 'data-' + KEY_ID
+var INDEX = 0
+
+if (window && window.MutationObserver) {
+  var observer = new MutationObserver(function (mutations) {
+    if (Object.keys(watch).length < 1) return
+    for (var i = 0; i < mutations.length; i++) {
+      if (mutations[i].attributeName === KEY_ATTR) {
+        eachAttr(mutations[i], turnon, turnoff)
+        continue
+      }
+      eachMutation(mutations[i].removedNodes, turnoff)
+      eachMutation(mutations[i].addedNodes, turnon)
+    }
+  })
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeOldValue: true,
+    attributeFilter: [KEY_ATTR]
+  })
+}
+
+module.exports = function onload (el, on, off) {
+  on = on || function () {}
+  off = off || function () {}
+  el.setAttribute(KEY_ATTR, 'o' + INDEX)
+  watch['o' + INDEX] = [on, off, 0, onload.caller]
+  INDEX += 1
+  return el
+}
+
+function turnon (index, el) {
+  if (watch[index][0] && watch[index][2] === 0) {
+    watch[index][0](el)
+    watch[index][2] = 1
+  }
+}
+
+function turnoff (index, el) {
+  if (watch[index][1] && watch[index][2] === 1) {
+    watch[index][1](el)
+    watch[index][2] = 0
+  }
+}
+
+function eachAttr (mutation, on, off) {
+  var newValue = mutation.target.getAttribute(KEY_ATTR)
+  if (sameOrigin(mutation.oldValue, newValue)) {
+    watch[newValue] = watch[mutation.oldValue]
+    return
+  }
+  Object.keys(watch).forEach(function (k) {
+    if (mutation.oldValue === k) {
+      off(k, mutation.target)
+    }
+    if (newValue === k) {
+      on(k, mutation.target)
+    }
+  })
+}
+
+function sameOrigin (oldValue, newValue) {
+  if (!oldValue || !newValue) return false
+  return watch[oldValue][3] === watch[newValue][3]
+}
+
+function eachMutation (nodes, fn) {
+  var keys = Object.keys(watch)
+  for (var i = 0; i < nodes.length; i++) {
+    if (nodes[i] && nodes[i].getAttribute && nodes[i].getAttribute(KEY_ATTR)) {
+      var onloadid = nodes[i].getAttribute(KEY_ATTR)
+      keys.forEach(function (k) {
+        if (onloadid === k) {
+          fn(k, nodes[i])
+        }
+      })
+    }
+    if (nodes[i].childNodes.length > 0) {
+      eachMutation(nodes[i].childNodes, fn)
+    }
+  }
+}
+
+},{"global/document":10,"global/window":11}],18:[function(require,module,exports){
 const assert = require('assert')
 
 module.exports = match
@@ -1966,175 +2355,7 @@ function match (route) {
     .replace(/\/$/, '')
 }
 
-},{"assert":2}],14:[function(require,module,exports){
-// shim for using process in browser
-
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-(function () {
-  try {
-    cachedSetTimeout = setTimeout;
-  } catch (e) {
-    cachedSetTimeout = function () {
-      throw new Error('setTimeout is not defined');
-    }
-  }
-  try {
-    cachedClearTimeout = clearTimeout;
-  } catch (e) {
-    cachedClearTimeout = function () {
-      throw new Error('clearTimeout is not defined');
-    }
-  }
-} ())
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = cachedSetTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    cachedClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        cachedSetTimeout(drainQueue, 0);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],15:[function(require,module,exports){
-(function (process){
-var extend = require('xtend')
-
-module.exports = function sendAction (options) {
-  if (!options) throw new Error('options required')
-  if (!options.onaction) throw new Error('options.onaction required')
-  if (!options.onchange) throw new Error('options.onchange required')
-  var state = options.state || {}
-
-  function send (action, params) {
-    process.nextTick(function () {
-      if (typeof action === 'object') {
-        params = action
-      } else if (typeof action === 'string') {
-        params = extend({ type: action }, params)
-      }
-
-      var stateUpdates = options.onaction(params, state, send)
-      if (state !== stateUpdates) {
-        update(params, stateUpdates)
-      }
-    })
-  }
-
-  function update (params, stateUpdates) {
-    var oldState = state
-    state = extend(state, stateUpdates)
-    options.onchange(params, state, oldState)
-  }
-
-  send.event = function sendAction_event (action, params, flag) {
-    if (typeof flag === undefined) flag = true
-    return function sendAction_send_thunk (e) {
-      if (flag && e && e.preventDefault) e.preventDefault()
-      send(action, params, flag)
-    }
-  }
-
-  send.state = function sendAction_state () {
-    return state
-  }
-
-  return send
-}
-
-}).call(this,require('_process'))
-},{"_process":14,"xtend":25}],16:[function(require,module,exports){
+},{"assert":2}],19:[function(require,module,exports){
 const window = require('global/window')
 const assert = require('assert')
 
@@ -2150,7 +2371,7 @@ function hash (cb) {
   }
 }
 
-},{"assert":2,"global/window":7}],17:[function(require,module,exports){
+},{"assert":2,"global/window":11}],20:[function(require,module,exports){
 const document = require('global/document')
 const window = require('global/window')
 const assert = require('assert')
@@ -2167,7 +2388,7 @@ function history (cb) {
   }
 }
 
-},{"assert":2,"global/document":6,"global/window":7}],18:[function(require,module,exports){
+},{"assert":2,"global/document":10,"global/window":11}],21:[function(require,module,exports){
 const window = require('global/window')
 const assert = require('assert')
 
@@ -2198,7 +2419,7 @@ function href (cb) {
   }
 }
 
-},{"assert":2,"global/window":7}],19:[function(require,module,exports){
+},{"assert":2,"global/window":11}],22:[function(require,module,exports){
 const pathname = require('pathname-match')
 const wayfarer = require('wayfarer')
 const assert = require('assert')
@@ -2208,14 +2429,16 @@ module.exports = sheetRouter
 // Fast, modular client router
 // fn(str, any[..], fn?) -> fn(str, any[..])
 function sheetRouter (dft, createTree, createRoute) {
-  createRoute = createRoute ? createRoute(r) : r
+  createRoute = (createRoute ? createRoute(_createRoute) : _createRoute)
+
   if (!createTree) {
     createTree = dft
     dft = ''
   }
 
-  assert.equal(typeof dft, 'string', 'dft must be a string')
-  assert.equal(typeof createTree, 'function', 'createTree must be a function')
+  assert.equal(typeof dft, 'string', 'sheet-router: dft must be a string')
+  assert.equal(typeof createTree, 'function', 'sheet-router: createTree must be a function')
+  assert.equal(typeof createRoute, 'function', 'sheet-router: createRoute must be a function')
 
   const router = wayfarer(dft)
   const tree = createTree(createRoute)
@@ -2256,7 +2479,7 @@ function sheetRouter (dft, createTree, createRoute) {
 }
 
 // register regular route
-function r (route, inline, child) {
+function _createRoute (route, inline, child) {
   if (!child) {
     child = inline
     inline = null
@@ -2267,49 +2490,14 @@ function r (route, inline, child) {
   return [ route, inline, child ]
 }
 
-},{"assert":2,"pathname-match":13,"wayfarer":23}],20:[function(require,module,exports){
-
-/**
- * An Array.prototype.slice.call(arguments) alternative
- *
- * @param {Object} args something with a length
- * @param {Number} slice
- * @param {Number} sliceEnd
- * @api public
- */
-
-module.exports = function (args, slice, sliceEnd) {
-  var ret = [];
-  var len = args.length;
-
-  if (0 === len) return ret;
-
-  var start = slice < 0
-    ? Math.max(0, slice + len)
-    : slice || 0;
-
-  if (sliceEnd !== undefined) {
-    len = sliceEnd < 0
-      ? sliceEnd + len
-      : sliceEnd
-  }
-
-  while (len-- > start) {
-    ret[len - start] = args[len];
-  }
-
-  return ret;
-}
-
-
-},{}],21:[function(require,module,exports){
+},{"assert":2,"pathname-match":18,"wayfarer":25}],23:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],22:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -2899,9 +3087,8 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":21,"_process":14,"inherits":11}],23:[function(require,module,exports){
+},{"./support/isBuffer":23,"_process":6,"inherits":15}],25:[function(require,module,exports){
 const assert = require('assert')
-const sliced = require('sliced')
 const trie = require('./trie')
 
 module.exports = Wayfarer
@@ -2943,7 +3130,7 @@ function Wayfarer (dft) {
   // (str, obj?) -> null
   function emit (route) {
     assert.notEqual(route, undefined, "'route' must be defined")
-    const args = sliced(arguments)
+    const args = Array.prototype.slice.apply(arguments)
 
     const node = _trie.match(route)
     if (node && node.cb) {
@@ -2961,7 +3148,7 @@ function Wayfarer (dft) {
   }
 }
 
-},{"./trie":24,"assert":2,"sliced":20}],24:[function(require,module,exports){
+},{"./trie":26,"assert":2}],26:[function(require,module,exports){
 const mutate = require('xtend/mutable')
 const assert = require('assert')
 const xtend = require('xtend')
@@ -3078,7 +3265,7 @@ Trie.prototype.mount = function (route, trie) {
   }
 }
 
-},{"assert":2,"xtend":25,"xtend/mutable":26}],25:[function(require,module,exports){
+},{"assert":2,"xtend":27,"xtend/mutable":28}],27:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -3099,7 +3286,7 @@ function extend() {
     return target
 }
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -3118,7 +3305,7 @@ function extend(target) {
     return target
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var bel = require('bel') // turns template tag into DOM elements
 var morphdom = require('morphdom') // efficiently diffs + morphs two DOM elements
 var defaultEvents = require('./update-events.js') // default events to be copied when dom elements update
@@ -3154,7 +3341,7 @@ module.exports.update = function (fromNode, toNode, opts) {
   }
 }
 
-},{"./update-events.js":28,"bel":3,"morphdom":12}],28:[function(require,module,exports){
+},{"./update-events.js":30,"bel":4,"morphdom":16}],30:[function(require,module,exports){
 module.exports = [
   // attribute events (can be set with attributes)
   'onclick',
@@ -3192,7 +3379,7 @@ module.exports = [
   'onfocusout'
 ]
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 function relTime(now, dt) {
     var month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     var delta = now.getTime() - dt.getTime();

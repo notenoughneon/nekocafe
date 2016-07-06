@@ -1,8 +1,9 @@
 
 const xtend = require('xtend');
 const choo = require('choo');
-const app = choo();
+const html = require('choo/html');
 const util = require('./util');
+const app = choo();
 
 var socket;
 
@@ -18,10 +19,6 @@ app.model({
     effects: {
         sendMessage: (action, state) => {
             socket.emit('message', action.text);
-        },
-        receiveMessage: (action, state) => {
-            let body = document.getElementsByTagName('body')[0];
-            body.scrollTop = body.scrollHeight;
         }
     },
     subscriptions: [
@@ -47,14 +44,19 @@ app.model({
     ]
 });
 
-const messageView = (now, {time, text}) => choo.view`
-    <li class="row">
+function scrollDown(el) {
+    let body = document.getElementsByTagName('body')[0];
+    body.scrollTop = body.scrollHeight;
+}
+
+const messageView = (now, {time, text}) => html`
+    <li class="row" onload=${scrollDown}>
         <span class="col-xs-2 col-sm-1">${util.relTime(now, time)}</span>
         <span class="col-xs-10 col-sm-11">${text}</span>
     </li>
 `;
 
-const messagesView  = ({now, messages}) => choo.view`
+const messagesView  = ({now, messages}) => html`
     <ul id="messages">
         ${messages.map(message => messageView(now, message))}
     </ul>
@@ -68,7 +70,7 @@ const messageBox = (send) => {
         send('sendMessage', {text: data.get('message')});
         e.target.reset();
     }
-    return choo.view`
+    return html`
         <nav class="navbar navbar-default navbar-fixed-bottom">
             <div class="container">
                 <form id="chatForm" class="navbar-form" onsubmit=${onSubmit}>
@@ -84,7 +86,7 @@ const messageBox = (send) => {
     `;
 }
 
-const mainView = (params, state, send) => choo.view`
+const mainView = (params, state, send) => html`
     <div class="container">
         ${messagesView(state)}
         ${messageBox(send)}
