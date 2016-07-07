@@ -18,31 +18,33 @@ app.model({
         setTime: (action, state) => (xtend(state, {now: action.time}))
     },
     effects: {
-        sendMessage: (action, state) => {
+        sendMessage: (action, state, send, done) => {
             socket.emit('message', action.text);
         }
     },
-    subscriptions: [
-        send => setInterval(() => send('setTime', {time: new Date()}), 5000),
-        send => {
+    subscriptions: {
+        timer: (send, done) => {
+            setInterval(() => send('setTime', {time: new Date()}, done), 5000);
+        },
+        socket: (send, done) => {
             socket = io();
             socket.on('connect', function() {
                 socket.emit('nick', {nick: 'testuser', lastMsg: 0});
             });
             socket.on('disconnect', function() {
-                send('receiveMessage', {message: {time: new Date(), text: '* Disconnected.'}});
+                send('receiveMessage', {message: {time: new Date(), text: '* Disconnected.'}}, done);
             });
             socket.on('system', function(msg) {
-                send('receiveMessage', {message: {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}});
+                send('receiveMessage', {message: {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}}, done);
             });
             socket.on('message', function(msg) {
                 send('receiveMessage', {message: {
                     time: new Date(msg.time),
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
-                }});
+                }}, done);
             });
         }
-    ]
+    }
 });
 
 function scrollDown(el) {
@@ -87,7 +89,7 @@ const messageBox = (send) => {
     `;
 }
 
-const mainView = (params, state, send) => html`
+const mainView = (state, prev, send) => html`
     <div class="container">
         ${messagesView(state)}
         ${messageBox(send)}
