@@ -51,12 +51,16 @@ function scrollDown(el) {
     body.scrollTop = body.scrollHeight;
 }
 
-const messageView = (now, {time, text}) => html`
-    <li class="row" onload=${scrollDown}>
-        <span class="col-xs-2 col-sm-1">${util.relTime(now, time)}</span>
-        <span class="col-xs-10 col-sm-11">${text}</span>
-    </li>
-`;
+const messageView = (now, {time, text}) => {
+    const textSpan = html`<span class="col-xs-10 col-sm-11"></span>`;
+    textSpan.innerHTML = text;
+    return html`
+        <li class="row" onload=${scrollDown}>
+            <span class="col-xs-2 col-sm-1">${util.relTime(now, time)}</span>
+            ${textSpan}
+        </li>
+    `;
+}
 
 const messagesView  = ({now, messages}) => html`
     <ul id="messages">
