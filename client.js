@@ -10,27 +10,29 @@ var socket;
 app.model({
     state: {
         now: new Date(),
-        messages: []
+        messages: [],
+        nick: null,
+        isConnected: false
     },
     reducers: {
-        receiveMessage: (action, state) => (xtend(state, {messages: [...state.messages, action.message]})),
-        setTime: (action, state) => (xtend(state, {now: action.time}))
+        setNick: (action, state) => xtend(state, {nick: action.nick}),
+        setConnected: (action, state) => xtend(state, {isConnected: action.connected}),
+        receiveMessage: (action, state) => xtend(state, {messages: [...state.messages, action.message]}),
+        setTime: (action, state) => xtend(state, {now: action.time})
     },
     effects: {
         sendMessage: (action, state, send, done) => {
             socket.emit('message', action.text);
-        }
-    },
-    subscriptions: {
-        timer: (send, done) => {
-            setInterval(() => send('setTime', {time: new Date()}, done), 5000);
         },
-        socket: (send, done) => {
+        login: (action, state, send, done) => {
+            send('setNick', {nick: action.nick}, done);
             socket = io();
             socket.on('connect', function() {
-                socket.emit('nick', {nick: 'testuser', lastMsg: 0});
+                socket.emit('nick', {nick: action.nick, lastMsg: 0});
+                send('setConnected', {connected: true}, done);
             });
             socket.on('disconnect', function() {
+                send('setConnected', {connected: false}, done);
                 send('receiveMessage', {message: {time: new Date(), text: '* Disconnected.'}}, done);
             });
             socket.on('system', function(msg) {
@@ -42,6 +44,11 @@ app.model({
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
                 }}, done);
             });
+        }
+    },
+    subscriptions: {
+        timer: (send, done) => {
+            setInterval(() => send('setTime', {time: new Date()}, done), 5000);
         }
     }
 });
@@ -62,14 +69,17 @@ const messageView = (now, {time, text}) => {
     `;
 }
 
-const messagesView  = ({now, messages}) => html`
-    <ul id="messages">
+const messageList  = ({now, messages}) => html`
+    <ul class="messageList">
         ${messages.map(message => messageView(now, message))}
     </ul>
 `;
 
+function disableIf(exp) {
+    return exp ? 'disabled' : '';
+}
 
-const messageBox = (send) => {
+const messageWidget = ({isConnected}, send) => {
     function onSubmit(e) {
         e.preventDefault();
         var data = new FormData(e.target);
@@ -79,11 +89,12 @@ const messageBox = (send) => {
     return html`
         <nav class="navbar navbar-default navbar-fixed-bottom">
             <div class="container">
-                <form id="chatForm" class="navbar-form" onsubmit=${onSubmit}>
+                <form class="navbar-form messageWidget" onsubmit=${onSubmit}>
                     <div class="input-group">
-                        <input id="message" name="message" class="form-control" placeholder="Enter message" autocomplete="off" />
+                        <input ${disableIf(!isConnected)} id="message" name="message"
+                        class="form-control" placeholder="Enter message" autocomplete="off" />
                         <span class="input-group-btn">
-                            <button class="btn btn-default" type="submit">Send</button>
+                            <button ${disableIf(!isConnected)} class="btn btn-default" type="submit">Send</button>
                         </span>
                     </div>
                 </form>
@@ -92,10 +103,39 @@ const messageBox = (send) => {
     `;
 }
 
+const loginWidget = (send) => {
+    function onSubmit(e) {
+        e.preventDefault();
+        var data = new FormData(e.target);
+        send('login', {nick: data.get('nick')});
+    }
+    return html`
+        <form class="form-inline" onsubmit=${onSubmit}>
+            <div class="form-group">
+                <label for="nick">Name</label>
+                <input id="nick" name="nick" class="form-control" placeholder="ฅ^•ﻌ•^" type="text" required autofocus />
+            </div>
+            <button class="btn btn-default">Connect</button>
+        </form>
+    `;
+};
+
+const spinner = () => {
+    return html`
+        <div>
+            Connecting...
+        </div>
+    `;
+}
+
 const mainView = (state, prev, send) => html`
-    <div class="container">
-        ${messagesView(state)}
-        ${messageBox(send)}
+    <div>
+        <div class="container content">
+            ${state.nick == null ? loginWidget(send) : ''}
+            ${messageList(state)}
+            ${state.nick != null && !state.isConnected ? spinner() : ''}
+        </div>
+        ${messageWidget(state, send)}
     </div>
 `;
 
@@ -104,7 +144,7 @@ app.router(route => [
 ]);
 
 const tree = app.start();
-document.getElementById('chatScreen').appendChild(tree);
+document.getElementById('body').appendChild(tree);
 
 
 // var socket;
