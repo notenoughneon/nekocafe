@@ -6,6 +6,8 @@ const util = require('./util');
 const app = choo();
 
 var socket;
+var unread = 0;
+var isBlurred = false;
 
 app.model({
     state: {
@@ -39,6 +41,10 @@ app.model({
                 send('receiveMessage', {message: {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}}, done);
             });
             socket.on('message', function(msg) {
+                if (isBlurred) {
+                    unread++;
+                    document.title = `(${unread}) nekocafe`;
+                }
                 send('receiveMessage', {message: {
                     time: new Date(msg.time),
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
@@ -49,6 +55,16 @@ app.model({
     subscriptions: {
         timer: (send, done) => {
             setInterval(() => send('setTime', {time: new Date()}, done), 5000);
+        },
+        blur: (send, done) => {
+            window.addEventListener('blur', () => {
+                unread = 0;
+                isBlurred = true;
+            }, false);
+            window.addEventListener('focus', () => {
+                document.title = 'nekocafe';
+                isBlurred = false;
+            }, false);
         }
     }
 });
