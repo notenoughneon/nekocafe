@@ -17,17 +17,17 @@ app.model({
         isConnected: false
     },
     reducers: {
-        setNick: (action, state) => xtend(state, {nick: action.nick}),
+        setNick: (action, state) => xtend(state, {nick: action}),
         setConnected: (action, state) => xtend(state, {isConnected: action.connected}),
         receiveMessage: (action, state) => xtend(state, {messages: [...state.messages, action.message]}),
-        setTime: (action, state) => xtend(state, {now: action.time})
+        setTime: (action, state) => xtend(state, {now: action})
     },
     effects: {
         sendMessage: (action, state, send, done) => {
             socket.emit('message', action.text);
         },
         login: (action, state, send, done) => {
-            send('setNick', {nick: action.nick}, done);
+            send('setNick', action.nick, done);
             socket = io();
             socket.on('connect', function() {
                 socket.emit('nick', {nick: action.nick, lastMsg: 0});
@@ -54,7 +54,7 @@ app.model({
     },
     subscriptions: {
         timer: (send, done) => {
-            setInterval(() => send('setTime', {time: new Date()}, done), 5000);
+            setInterval(() => send('setTime', new Date(), done), 5000);
         },
         blur: (send, done) => {
             window.addEventListener('blur', () => {
