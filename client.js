@@ -59,11 +59,11 @@ function scrollDown(el) {
 }
 
 const messageView = (now, {time, text}) => {
-    const textSpan = html`<span class="col-xs-10 col-sm-11"></span>`;
+    const textSpan = html`<span class="col-xs-10 col-sm-11 text"></span>`;
     textSpan.innerHTML = text;
     return html`
-        <li class="row" onload=${scrollDown}>
-            <span class="col-xs-2 col-sm-1">${util.relTime(now, time)}</span>
+        <li class="row message" onload=${scrollDown}>
+            <span class="col-xs-2 col-sm-1 time">${util.relTime(now, time)}</span>
             ${textSpan}
         </li>
     `;

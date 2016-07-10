@@ -13,10 +13,10 @@ ul.messageList {
     margin: 0;
     padding: 0;
 }
-#messages {
+.message > .text {
     word-wrap: break-word;
 }
-#messages time {
+.message > .time {
     color: #bbbbbb;
 }
 .messageWidget {
