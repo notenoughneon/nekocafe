@@ -6,6 +6,7 @@ body.dark {
     background-color: #313131;
 }
 .content {
+    padding-top: 70px;
     padding-bottom: 70px;
 }
 ul.messageList {
@@ -19,12 +20,35 @@ ul.messageList {
 .message > .time {
     color: #bbbbbb;
 }
-.messageWidget {
+.navbar-text {
+    float: left;
+    margin-left: 0px;
+    margin-right: 0px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.navbar-right {
+    float: right;
+    margin-right: 0px;
+}
+.navbar-form {
+    margin-left: 0px;
+    margin-right: 0px;
+}
+.navbar-form {
     padding: 0px;
+    border: none;
+}
+.navbar-form .form-group {
+    display: inline-block!important;
+    margin-bottom: 0px!important;
+    vertical-align: middle!important;
 }
 .messageWidget .input-group {
     width: 100%;
 }
 .messageWidget .input-group-btn {
-    width: 1%;
+    width: 1%!important;
 }

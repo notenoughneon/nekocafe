@@ -74,7 +74,7 @@ function scrollDown(el) {
     body.scrollTop = body.scrollHeight;
 }
 
-const messageView = (now, {time, text}) => {
+const messageRow = (now, {time, text}) => {
     const textSpan = html`<span class="col-xs-10 col-sm-11 text"></span>`;
     textSpan.innerHTML = text;
     return html`
@@ -87,15 +87,70 @@ const messageView = (now, {time, text}) => {
 
 const messageList  = ({now, messages}) => html`
     <ul class="messageList">
-        ${messages.map(message => messageView(now, message))}
+        ${messages.map(message => messageRow(now, message))}
     </ul>
 `;
+
+const statusBar = (state, send) => {
+    function login(e) {
+        e.preventDefault();
+        var data = new FormData(e.target);
+        send('login', {nick: data.get('nick')});
+    }
+
+    var spinner = html`<p class="navbar-text">Connecting...</div>`;
+
+    var status = html`<p class="navbar-text" href="">logged_in_user</a>`;
+
+    var loginWidget = html`
+        <form class="navbar-form navbar-left" onsubmit=${login}>
+            <div class="form-group">
+                <input class="form-control" type="text" name="nick" placeholder="Name" autofocus required />
+            </div>
+            <button class="btn btn-primary" type="button">Connect</button>
+        </form>
+    `;
+
+    return html`
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="row">
+                    <span class="col-xs-11">
+                        ${state.nick == null ? loginWidget : (state.isConnected ? status : spinner)}
+                    </span>
+                    <span class="col-xs-1">
+                        <button class="btn btn-default navbar-btn navbar-right" type="button" tabindex="-1">+</button>
+                    </span>
+                </div>
+            </div>
+        </nav>
+    `;
+};
+
+const optionsWidget = (state, send) => {
+    return html`
+        <form>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" />
+                    Notifications
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" />
+                    Dark mode
+                </label>
+            </div>
+        </form>
+    `;
+};
 
 function disableIf(exp) {
     return exp ? 'disabled' : '';
 }
 
-const messageWidget = ({isConnected}, send) => {
+const messageBar = ({isConnected}, send) => {
     function onSubmit(e) {
         e.preventDefault();
         var data = new FormData(e.target);
@@ -108,7 +163,7 @@ const messageWidget = ({isConnected}, send) => {
                 <form class="navbar-form messageWidget" onsubmit=${onSubmit}>
                     <div class="input-group">
                         <input ${disableIf(!isConnected)} id="message" name="message"
-                        class="form-control" placeholder="Enter message" autocomplete="off" />
+                            class="form-control" placeholder="Enter message" autocomplete="off" />
                         <span class="input-group-btn">
                             <button ${disableIf(!isConnected)} class="btn btn-default" type="submit">Send</button>
                         </span>
@@ -119,39 +174,13 @@ const messageWidget = ({isConnected}, send) => {
     `;
 }
 
-const loginWidget = (send) => {
-    function onSubmit(e) {
-        e.preventDefault();
-        var data = new FormData(e.target);
-        send('login', {nick: data.get('nick')});
-    }
-    return html`
-        <form class="form-inline" onsubmit=${onSubmit}>
-            <div class="form-group">
-                <label for="nick">Name</label>
-                <input id="nick" name="nick" class="form-control" placeholder="ฅ^•ﻌ•^" type="text" required autofocus />
-            </div>
-            <button class="btn btn-default">Connect</button>
-        </form>
-    `;
-};
-
-const spinner = () => {
-    return html`
-        <div>
-            Connecting...
-        </div>
-    `;
-}
-
 const mainView = (state, prev, send) => html`
     <div>
+        ${statusBar(state, send)}
         <div class="container content">
-            ${state.nick == null ? loginWidget(send) : ''}
             ${messageList(state)}
-            ${state.nick != null && !state.isConnected ? spinner() : ''}
         </div>
-        ${messageWidget(state, send)}
+        ${messageBar(state, send)}
     </div>
 `;
 
