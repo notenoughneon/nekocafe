@@ -20,27 +20,27 @@ app.model({
         optionDark: false
     },
     reducers: {
-        setNick: (action, state) => xtend(state, {nick: action}),
-        setConnected: (action, state) => xtend(state, {isConnected: action.connected}),
-        setShowOptions: (action, state) => xtend(state, {showOptions: action}),
-        setOptionNotifications: (action, state) => {
-            if (action) {
+        setNick: (data, state) => xtend(state, {nick: data}),
+        setConnected: (data, state) => xtend(state, {isConnected: data}),
+        setShowOptions: (data, state) => xtend(state, {showOptions: data}),
+        setOptionNotifications: (data, state) => {
+            if (data) {
                 Notification.requestPermission();
             }
-            return xtend(state, {optionNotifications: action});
+            return xtend(state, {optionNotifications: data});
         },
-        setOptionDark: (action, state) => xtend(state, {optionDark: action}),
-        receiveMessage: (action, state) => {
+        setOptionDark: (data, state) => xtend(state, {optionDark: data}),
+        receiveMessage: (data, state) => {
             if (isBlurred) {
                 unread++;
                 document.title = `(${unread}) nekocafe`;
                 if (state.optionNotifications) {
-                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: action.message.text});
+                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: data.text});
                 }
             }
-            return xtend(state, {messages: [...state.messages, action.message]});
+            return xtend(state, {messages: [...state.messages, data]});
         },
-        setTime: (action, state) => xtend(state, {now: action})
+        setTime: (data, state) => xtend(state, {now: data})
     },
     effects: {
         sendMessage: (action, state, send, done) => {
@@ -51,20 +51,20 @@ app.model({
             socket = io();
             socket.on('connect', function() {
                 socket.emit('nick', {nick: action.nick, lastMsg: 0});
-                send('setConnected', {connected: true}, done);
+                send('setConnected', true, done);
             });
             socket.on('disconnect', function() {
-                send('setConnected', {connected: false}, done);
-                send('receiveMessage', {message: {time: new Date(), text: '* Disconnected.'}}, done);
+                send('setConnected', false, done);
+                send('receiveMessage', {time: new Date(), text: '* Disconnected.'}, done);
             });
             socket.on('system', function(msg) {
-                send('receiveMessage', {message: {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}}, done);
+                send('receiveMessage', {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}, done);
             });
             socket.on('message', function(msg) {
-                send('receiveMessage', {message: {
+                send('receiveMessage', {
                     time: new Date(msg.time),
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
-                }}, done);
+                }, done);
             });
         }
     },
