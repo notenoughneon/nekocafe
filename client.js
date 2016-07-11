@@ -14,12 +14,32 @@ app.model({
         now: new Date(),
         messages: [],
         nick: null,
-        isConnected: false
+        isConnected: false,
+        showOptions: false,
+        optionNotifications: false,
+        optionDark: false
     },
     reducers: {
         setNick: (action, state) => xtend(state, {nick: action}),
         setConnected: (action, state) => xtend(state, {isConnected: action.connected}),
-        receiveMessage: (action, state) => xtend(state, {messages: [...state.messages, action.message]}),
+        setShowOptions: (action, state) => xtend(state, {showOptions: action}),
+        setOptionNotifications: (action, state) => {
+            if (action) {
+                Notification.requestPermission();
+            }
+            return xtend(state, {optionNotifications: action});
+        },
+        setOptionDark: (action, state) => xtend(state, {optionDark: action}),
+        receiveMessage: (action, state) => {
+            if (isBlurred) {
+                unread++;
+                document.title = `(${unread}) nekocafe`;
+                if (state.optionNotifications) {
+                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: action.message.text});
+                }
+            }
+            return xtend(state, {messages: [...state.messages, action.message]});
+        },
         setTime: (action, state) => xtend(state, {now: action})
     },
     effects: {
@@ -41,10 +61,6 @@ app.model({
                 send('receiveMessage', {message: {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}}, done);
             });
             socket.on('message', function(msg) {
-                if (isBlurred) {
-                    unread++;
-                    document.title = `(${unread}) nekocafe`;
-                }
                 send('receiveMessage', {message: {
                     time: new Date(msg.time),
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
@@ -69,8 +85,8 @@ app.model({
     }
 });
 
-function scrollDown(el) {
-    let body = document.getElementsByTagName('body')[0];
+function scrollDown() {
+    var body = document.body;
     body.scrollTop = body.scrollHeight;
 }
 
@@ -112,14 +128,15 @@ const statusBar = (state, send) => {
     `;
 
     return html`
-        <nav class="navbar navbar-default navbar-fixed-top">
+        <nav class="navbar ${state.optionDark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-top">
             <div class="container">
                 <div class="row">
                     <span class="col-xs-11">
                         ${state.nick == null ? loginWidget : (state.isConnected ? status : spinner)}
                     </span>
                     <span class="col-xs-1">
-                        <button class="btn btn-default navbar-btn navbar-right" type="button" tabindex="-1">+</button>
+                        <button class="btn btn-default navbar-btn navbar-right" type="button"
+                            tabindex="-1" onclick=${() => send('setShowOptions', !state.showOptions)}>+</button>
                     </span>
                 </div>
             </div>
@@ -132,13 +149,15 @@ const optionsWidget = (state, send) => {
         <form>
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" />
+                    <input type="checkbox" ${state.optionNotifications ? 'checked': ''}
+                        onchange=${e => send('setOptionNotifications', e.target.checked)} />
                     Notifications
                 </label>
             </div>
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" />
+                    <input type="checkbox" ${state.optionDark ? 'checked' : ''}
+                        onchange=${e => send('setOptionDark', e.target.checked)} />
                     Dark mode
                 </label>
             </div>
@@ -150,7 +169,7 @@ function disableIf(exp) {
     return exp ? 'disabled' : '';
 }
 
-const messageBar = ({isConnected}, send) => {
+const messageBar = (state, send) => {
     function onSubmit(e) {
         e.preventDefault();
         var data = new FormData(e.target);
@@ -158,14 +177,14 @@ const messageBar = ({isConnected}, send) => {
         e.target.reset();
     }
     return html`
-        <nav class="navbar navbar-default navbar-fixed-bottom">
+        <nav class="navbar ${state.optionDark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-bottom">
             <div class="container">
                 <form class="navbar-form messageWidget" onsubmit=${onSubmit}>
                     <div class="input-group">
-                        <input ${disableIf(!isConnected)} id="message" name="message"
+                        <input ${disableIf(!state.isConnected)} id="message" name="message"
                             class="form-control" placeholder="Enter message" autocomplete="off" />
                         <span class="input-group-btn">
-                            <button ${disableIf(!isConnected)} class="btn btn-default" type="submit">Send</button>
+                            <button ${disableIf(!state.isConnected)} class="btn btn-default" type="submit">Send</button>
                         </span>
                     </div>
                 </form>
@@ -175,10 +194,10 @@ const messageBar = ({isConnected}, send) => {
 }
 
 const mainView = (state, prev, send) => html`
-    <div>
+    <div class="${state.optionDark ? 'dark' : ''}">
         ${statusBar(state, send)}
         <div class="container content">
-            ${messageList(state)}
+            ${state.showOptions ? optionsWidget(state, send) : messageList(state)}
         </div>
         ${messageBar(state, send)}
     </div>
@@ -189,7 +208,7 @@ app.router(route => [
 ]);
 
 const tree = app.start();
-document.getElementById('body').appendChild(tree);
+document.body.appendChild(tree);
 
 
 // var socket;

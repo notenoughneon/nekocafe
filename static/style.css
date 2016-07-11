@@ -1,7 +1,7 @@
 html, body, .container {
     height: 100%;
 }
-body.dark {
+.dark {
     color: #d0d0d0;
     background-color: #313131;
 }
