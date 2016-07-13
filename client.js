@@ -115,8 +115,7 @@ const messageList  = (state) => html`
 const statusBar = (state, send) => {
     function login(e) {
         e.preventDefault();
-        var data = new FormData(e.target);
-        send('login', data.get('nick'));
+        send('login', e.target.children[0].children[0].value);
     }
 
     var spinner = html`<p class="navbar-text">Connecting...</div>`;
@@ -178,8 +177,7 @@ function disableIf(exp) {
 const messageBar = (state, send) => {
     function onSubmit(e) {
         e.preventDefault();
-        var data = new FormData(e.target);
-        send('sendMessage', data.get('message'));
+        send('sendMessage', e.target.children[0].children[0].value);
         e.target.reset();
     }
     return html`

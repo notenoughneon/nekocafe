@@ -11,6 +11,11 @@
   "directories": {
     "bin": "./bin"
   },
+  "browserify": {
+    "transform": [
+      "es2020"
+    ]
+  },
   "dependencies": {
     "choo": "^3.0.2",
     "express": "^4.14.0",
@@ -19,6 +24,7 @@
   },
   "devDependencies": {
     "browserify": "^13.0.1",
+    "es2020": "^1.1.7",
     "watchify": "^3.7.0"
   },
   "repository": {
