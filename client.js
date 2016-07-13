@@ -34,6 +34,8 @@ app.model({
         },
         setOptionDark: (data, state) => xtend(state, {optionDark: data}),
         receiveMessage: (data, state) => {
+            if (state.messages.some(m => m.time.getTime() === data.time.getTime()))
+                return state;
             if (isBlurred) {
                 unread++;
                 document.title = `(${unread}) nekocafe`;
