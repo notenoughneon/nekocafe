@@ -11,6 +11,7 @@ var isBlurred = false;
 app.model({
     state: {
         now: new Date(),
+        users: [],
         messages: [],
         nick: null,
         isConnected: false,
@@ -20,6 +21,9 @@ app.model({
     },
     reducers: {
         setNick: (data, state) => xtend(state, {nick: data}),
+        setUsers: (data, state) => xtend(state, {users: data}),
+        addUser: (data, state) => xtend(state, {users: [...state.users, data]}),
+        deleteUser: (data, state) => xtend(state, {users: state.users.filter(u => u.id !== data.id)}),
         setConnected: (data, state) => xtend(state, {isConnected: data}),
         setShowOptions: (data, state) => xtend(state, {showOptions: data}),
         setOptionNotifications: (data, state) => {
@@ -56,14 +60,20 @@ app.model({
                 send('setConnected', false, done);
                 send('receiveMessage', {time: new Date(), text: '* Disconnected.'}, done);
             });
-            socket.on('system', function(msg) {
-                send('receiveMessage', {time: new Date(msg.time), text: '* ' + util.escapeHtml(msg.message)}, done);
-            });
             socket.on('message', function(msg) {
                 send('receiveMessage', {
                     time: new Date(msg.time),
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
                 }, done);
+            });
+            socket.on('users', function(users) {
+                send('setUsers', users, done);
+            });
+            socket.on('join', function(user) {
+                send('addUser', user, done);
+            });
+            socket.on('part', function(user) {
+                send('deleteUser', user, done);
             });
         }
     },
@@ -115,7 +125,7 @@ const statusBar = (state, send) => {
 
     var spinner = html`<p class="navbar-text">Connecting...</div>`;
 
-    var status = html`<p class="navbar-text" href="">logged_in_user</a>`;
+    var status = html`<p class="navbar-text" href="">${state.users.map(u => u.nick).join(', ')}</a>`;
 
     var loginWidget = html`
         <form class="navbar-form navbar-left" onsubmit=${login}>
