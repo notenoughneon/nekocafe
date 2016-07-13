@@ -5,6 +5,12 @@ html, body, .container {
     color: #d0d0d0;
     background-color: #313131;
 }
+.options {
+    padding: 4px;
+    margin-top: 8px;
+    border: dashed 1px #bbbbbb;
+    border-radius: 6px;
+}
 .content {
     padding-top: 70px;
     padding-bottom: 70px;

@@ -155,7 +155,7 @@ const statusBar = (state, send) => {
 
 const optionsWidget = (state, send) => {
     return html`
-        <form>
+        <form class="options" onload=${scrollDown}>
             <div class="checkbox">
                 <label>
                     <input type="checkbox" ${state.optionNotifications ? 'checked': ''}
@@ -206,7 +206,8 @@ const mainView = (state, prev, send) => html`
     <div class="${state.optionDark ? 'dark' : ''}">
         ${statusBar(state, send)}
         <div class="container content">
-            ${state.showOptions ? optionsWidget(state, send) : messageList(state)}
+            ${messageList(state)}
+            ${state.showOptions ? optionsWidget(state, send) : ''}
         </div>
         ${messageBar(state, send)}
     </div>
