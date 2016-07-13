@@ -52,29 +52,24 @@ app.model({
         login: (action, state, send, done) => {
             send('setNick', action.nick, done);
             socket = io();
-            socket.on('connect', function() {
-                socket.emit('nick', {nick: action.nick, lastMsg: 0});
+            socket.on('connect', () => {
+                socket.emit('nick', {nick: action.nick});
                 send('setConnected', true, done);
             });
-            socket.on('disconnect', function() {
+            socket.on('disconnect', () => {
                 send('setConnected', false, done);
                 send('receiveMessage', {time: new Date(), text: '* Disconnected.'}, done);
             });
-            socket.on('message', function(msg) {
-                send('receiveMessage', {
+            socket.on('message', (msg) => send(
+                'receiveMessage',
+                {
                     time: new Date(msg.time),
                     text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
-                }, done);
-            });
-            socket.on('users', function(users) {
-                send('setUsers', users, done);
-            });
-            socket.on('join', function(user) {
-                send('addUser', user, done);
-            });
-            socket.on('part', function(user) {
-                send('deleteUser', user, done);
-            });
+                },
+                done));
+            socket.on('users', (users) => send('setUsers', users, done));
+            socket.on('join', (user) => send('addUser', user, done));
+            socket.on('part', (user) => send('deleteUser', user, done));
         }
     },
     subscriptions: {
