@@ -95,20 +95,20 @@ function scrollDown() {
     body.scrollTop = body.scrollHeight;
 }
 
-const messageRow = (now, {time, text}) => {
+const messageRow = (now, message) => {
     const textSpan = html`<span class="col-xs-10 col-sm-11 text"></span>`;
-    textSpan.innerHTML = text;
+    textSpan.innerHTML = message.text;
     return html`
         <li class="row message" onload=${scrollDown}>
-            <span class="col-xs-2 col-sm-1 time">${util.relTime(now, time)}</span>
+            <span class="col-xs-2 col-sm-1 time">${util.relTime(now, message.time)}</span>
             ${textSpan}
         </li>
     `;
 }
 
-const messageList  = ({now, messages}) => html`
+const messageList  = (state) => html`
     <ul class="messageList">
-        ${messages.map(message => messageRow(now, message))}
+        ${state.messages.map(message => messageRow(state.now, message))}
     </ul>
 `;
 
