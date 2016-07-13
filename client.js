@@ -121,14 +121,14 @@ const statusBar = (state, send) => {
 
     var spinner = html`<p class="navbar-text">Connecting...</div>`;
 
-    var status = html`<p class="navbar-text" href="">${state.users.map(u => u.nick).join(', ')}</a>`;
+    var status = html`<p class="navbar-text" href="">Online: ${state.users.map(u => u.nick).join(', ')}</a>`;
 
     var loginWidget = html`
         <form class="navbar-form navbar-left" onsubmit=${login}>
             <div class="form-group">
                 <input class="form-control" type="text" name="nick" placeholder="Name" autofocus required />
             </div>
-            <button class="btn btn-primary" type="button">Connect</button>
+            <button class="btn btn-primary" type="submit">Connect</button>
         </form>
     `;
 
@@ -141,7 +141,7 @@ const statusBar = (state, send) => {
                     </span>
                     <span class="col-xs-1">
                         <button class="btn btn-default navbar-btn navbar-right" type="button"
-                            tabindex="-1" onclick=${() => send('setShowOptions', !state.showOptions)}>+</button>
+                            tabindex="-1" onclick=${() => send('setShowOptions', !state.showOptions)}>${state.showOptions? '😺' : '🐱'}</button>
                     </span>
                 </div>
             </div>
@@ -152,6 +152,7 @@ const statusBar = (state, send) => {
 const optionsWidget = (state, send) => {
     return html`
         <form class="options" onload=${scrollDown}>
+            <label>Options</label>
             <div class="checkbox">
                 <label>
                     <input type="checkbox" ${state.optionNotifications ? 'checked': ''}
