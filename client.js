@@ -46,19 +46,18 @@ app.model({
         setTime: (data, state) => xtend(state, {now: data})
     },
     effects: {
-        sendMessage: (action, state, send, done) => {
-            socket.emit('message', action.text);
+        sendMessage: (data, state, send, done) => {
+            socket.emit('message', data);
         },
-        login: (action, state, send, done) => {
-            send('setNick', action.nick, done);
+        login: (data, state, send, done) => {
+            send('setNick', data, done);
             socket = io();
             socket.on('connect', () => {
-                socket.emit('nick', {nick: action.nick});
+                socket.emit('nick', {nick: data});
                 send('setConnected', true, done);
             });
             socket.on('disconnect', () => {
                 send('setConnected', false, done);
-                send('receiveMessage', {time: new Date(), text: '* Disconnected.'}, done);
             });
             socket.on('message', (msg) => send(
                 'receiveMessage',
@@ -115,7 +114,7 @@ const statusBar = (state, send) => {
     function login(e) {
         e.preventDefault();
         var data = new FormData(e.target);
-        send('login', {nick: data.get('nick')});
+        send('login', data.get('nick'));
     }
 
     var spinner = html`<p class="navbar-text">Connecting...</div>`;
@@ -177,7 +176,7 @@ const messageBar = (state, send) => {
     function onSubmit(e) {
         e.preventDefault();
         var data = new FormData(e.target);
-        send('sendMessage', {text: data.get('message')});
+        send('sendMessage', data.get('message'));
         e.target.reset();
     }
     return html`
