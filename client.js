@@ -151,6 +151,8 @@ const statusBar = (state, send) => {
 const optionsWidget = (state, send) => {
     return html`
         <form class="options" onload=${scrollDown}>
+            <label>Online</label>
+                <p>${state.users.map(u => u.nick).join(', ')}</p>
             <label>Options</label>
             <div class="checkbox">
                 <label>
