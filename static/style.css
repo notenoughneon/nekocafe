@@ -26,6 +26,13 @@ ul.messageList {
 .message > .time {
     color: #bbbbbb;
 }
+.login input {
+    width: 130px!important;
+}
+.login button {
+    padding-left: 6px;
+    padding-right: 6px;
+}
 .navbar-text {
     float: left;
     margin-left: 0px;

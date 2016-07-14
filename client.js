@@ -123,7 +123,7 @@ const statusBar = (state, send) => {
     var status = html`<p class="navbar-text" href="">${state.users.map(u => u.nick).join(', ')}</a>`;
 
     var loginWidget = html`
-        <form class="navbar-form navbar-left" onsubmit=${login}>
+        <form class="navbar-form login" onsubmit=${login}>
             <div class="form-group">
                 <input class="form-control" type="text" name="nick" placeholder="Name" autofocus required />
             </div>
