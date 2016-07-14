@@ -120,7 +120,7 @@ const statusBar = (state, send) => {
 
     var spinner = html`<p class="navbar-text">Connecting...</div>`;
 
-    var status = html`<p class="navbar-text" href="">Online: ${state.users.map(u => u.nick).join(', ')}</a>`;
+    var status = html`<p class="navbar-text" href="">${state.users.map(u => u.nick).join(', ')}</a>`;
 
     var loginWidget = html`
         <form class="navbar-form navbar-left" onsubmit=${login}>
@@ -135,10 +135,10 @@ const statusBar = (state, send) => {
         <nav class="navbar ${state.optionDark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-top">
             <div class="container">
                 <div class="row">
-                    <span class="col-xs-8 col-sm-10">
+                    <span class="col-xs-9 col-sm-10">
                         ${state.nick == null ? loginWidget : (state.isConnected ? status : spinner)}
                     </span>
-                    <span class="col-xs-4 col-sm-2">
+                    <span class="col-xs-3 col-sm-2">
                         <button class="btn btn-default navbar-btn navbar-right" type="button"
                             tabindex="-1" onclick=${() => send('setShowOptions', !state.showOptions)}>${state.showOptions? '😺' : '🐱'}</button>
                     </span>
