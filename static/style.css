@@ -20,6 +20,9 @@ ul.messageList {
     margin: 0;
     padding: 0;
 }
+.messageList li:nth-last-child(n+101) {
+    color: #d0d0d0;
+}
 .message > .text {
     word-wrap: break-word;
 }
