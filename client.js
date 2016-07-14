@@ -201,7 +201,8 @@ const messageBar = (state, send) => {
 }
 
 const mainView = (state, prev, send) => html`
-    <div class="${state.optionDark ? 'dark' : ''}">
+    <body class="${state.optionDark ? 'dark' : ''}">
+    <div>
         ${statusBar(state, send)}
         <div class="container content">
             ${messageList(state)}
@@ -209,11 +210,11 @@ const mainView = (state, prev, send) => html`
         </div>
         ${messageBar(state, send)}
     </div>
+    </body>
 `;
 
 app.router(route => [
     route('/', mainView)
 ]);
 
-const tree = app.start();
-document.body.appendChild(tree);
+const tree = app.start('#root');
