@@ -72,12 +72,10 @@ app.model({
             socket.on('users', (users) => send('setUsers', users, done));
             socket.on('join', (user) => send('addUser', user, done));
             socket.on('part', (user) => send('deleteUser', user, done));
+            socket.on('time', (time) => send('setTime', new Date(time), done));
         }
     },
     subscriptions: {
-        timer: (send, done) => {
-            setInterval(() => send('setTime', new Date(), done), 5000);
-        },
         blur: (send, done) => {
             window.addEventListener('blur', () => {
                 unread = 0;
