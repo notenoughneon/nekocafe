@@ -40,7 +40,7 @@ app.model({
                 unread++;
                 document.title = `(${unread}) nekocafe`;
                 if (state.optionNotifications) {
-                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: data.text});
+                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: `<${data.nick}> ${data.message}`});
                 }
             }
             return xtend(state, {messages: [...state.messages, data]});
@@ -65,7 +65,8 @@ app.model({
                 'receiveMessage',
                 {
                     time: new Date(msg.time),
-                    text: util.escapeHtml('<' + msg.nick + '> ') + util.hotLink(util.escapeHtml(msg.message))
+                    nick: msg.nick,
+                    message: msg.message
                 },
                 done));
             socket.on('users', (users) => send('setUsers', users, done));
@@ -96,12 +97,12 @@ function scrollDown() {
 }
 
 const messageRow = (now, message) => {
-    const textSpan = html`<span class="col-xs-10 col-sm-11 text"></span>`;
-    textSpan.innerHTML = message.text;
+    const msgSpan = html`<span></span>`;
+    msgSpan.innerHTML = util.hotLink(util.escapeHtml(message.message));
     return html`
         <li class="row message" onload=${scrollDown}>
             <span class="col-xs-2 col-sm-1 time">${util.relTime(now, message.time)}</span>
-            ${textSpan}
+            <span class="col-xs-10 col-sm-11 text">${'<' + message.nick + '>'} ${msgSpan}</span>
         </li>
     `;
 }
