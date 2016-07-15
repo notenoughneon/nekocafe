@@ -14,38 +14,36 @@ app.model({
         users: [],
         messages: [],
         nick: null,
-        isConnected: false,
+        connected: false,
         showOptions: false,
-        optionNotifications: false,
-        optionDark: false
+        notify: false,
+        dark: false
     },
     reducers: {
-        setNick: (data, state) => xtend(state, {nick: data}),
-        setUsers: (data, state) => xtend(state, {users: data}),
-        addUser: (data, state) => xtend(state, {users: [...state.users, data]}),
-        deleteUser: (data, state) => xtend(state, {users: state.users.filter(u => u.id !== data.id)}),
-        setConnected: (data, state) => xtend(state, {isConnected: data}),
-        setShowOptions: (data, state) => xtend(state, {showOptions: data}),
-        setOptionNotifications: (data, state) => {
-            if (data) {
-                Notification.requestPermission();
-            }
-            return xtend(state, {optionNotifications: data});
+        setNick: (nick, state) => xtend(state, {nick: nick}),
+        setUsers: (users, state) => xtend(state, {users: users}),
+        addUser: (user, state) => xtend(state, {users: [...state.users, user]}),
+        deleteUser: (user, state) => xtend(state, {users: state.users.filter(u => u.id !== user.id)}),
+        setConnected: (connected, state) => xtend(state, {connected: connected}),
+        setShowOptions: (showOptions, state) => xtend(state, {showOptions: showOptions}),
+        setNotify: (notify, state) => {
+            if (notify) { Notification.requestPermission(); }
+            return xtend(state, {notify: notify});
         },
-        setOptionDark: (data, state) => xtend(state, {optionDark: data}),
-        receiveMessage: (data, state) => {
-            if (state.messages.some(m => m.time.getTime() === data.time.getTime()))
+        setDark: (dark, state) => xtend(state, {dark: dark}),
+        receiveMessage: (message, state) => {
+            if (state.messages.some(m => m.time.getTime() === message.time.getTime()))
                 return state;
             if (isBlurred) {
                 unread++;
                 document.title = `(${unread}) nekocafe`;
-                if (state.optionNotifications) {
-                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: `<${data.nick}> ${data.message}`});
+                if (state.notify) {
+                    var n = new Notification('nekocafe', {tag: 'nekocafe', body: `<${message.nick}> ${message.message}`});
                 }
             }
-            return xtend(state, {messages: [...state.messages, data]});
+            return xtend(state, {messages: [...state.messages, message]});
         },
-        setTime: (data, state) => xtend(state, {now: data})
+        setTime: (time, state) => xtend(state, {now: time})
     },
     effects: {
         sendMessage: (data, state, send, done) => {
@@ -131,11 +129,11 @@ const statusBar = (state, send) => {
     `;
 
     return html`
-        <nav class="navbar ${state.optionDark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-top">
+        <nav class="navbar ${state.dark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-top">
             <div class="container">
                 <div class="row">
                     <span class="col-xs-9 col-sm-10">
-                        ${state.nick == null ? loginWidget : (state.isConnected ? status : spinner)}
+                        ${state.nick == null ? loginWidget : (state.connected ? status : spinner)}
                     </span>
                     <span class="col-xs-3 col-sm-2">
                         <button class="btn btn-default navbar-btn navbar-right" type="button"
@@ -155,15 +153,15 @@ const optionsWidget = (state, send) => {
             <label>Options</label>
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" ${state.optionNotifications ? 'checked': ''}
-                        onchange=${e => send('setOptionNotifications', e.target.checked)} />
+                    <input type="checkbox" ${state.notify ? 'checked': ''}
+                        onchange=${e => send('setNotify', e.target.checked)} />
                     Notifications
                 </label>
             </div>
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" ${state.optionDark ? 'checked' : ''}
-                        onchange=${e => send('setOptionDark', e.target.checked)} />
+                    <input type="checkbox" ${state.dark ? 'checked' : ''}
+                        onchange=${e => send('setDark', e.target.checked)} />
                     Dark mode
                 </label>
             </div>
@@ -182,14 +180,14 @@ const messageBar = (state, send) => {
         e.target.reset();
     }
     return html`
-        <nav class="navbar ${state.optionDark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-bottom">
+        <nav class="navbar ${state.dark ? 'navbar-inverse' : 'navbar-default'} navbar-fixed-bottom">
             <div class="container">
                 <form class="navbar-form messageWidget" onsubmit=${onSubmit}>
                     <div class="input-group">
-                        <input ${disableIf(!state.isConnected)} id="message" name="message"
+                        <input ${disableIf(!state.connected)} id="message" name="message"
                             class="form-control" placeholder="Enter message" autocomplete="off" />
                         <span class="input-group-btn">
-                            <button ${disableIf(!state.isConnected)} class="btn btn-default" type="submit">Send</button>
+                            <button ${disableIf(!state.connected)} class="btn btn-default" type="submit">Send</button>
                         </span>
                     </div>
                 </form>
@@ -199,7 +197,7 @@ const messageBar = (state, send) => {
 }
 
 const mainView = (state, prev, send) => html`
-    <body class="${state.optionDark ? 'dark' : ''}">
+    <body class="${state.dark ? 'dark' : ''}">
     <div>
         ${statusBar(state, send)}
         <div class="container content">
