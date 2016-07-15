@@ -5,8 +5,8 @@
   "license": "MIT",
   "preferGlobal": true,
   "scripts": {
-    "dev": "node_modules/.bin/watchify client.js -o static/bundle.js -v",
-    "build": "node_modules/.bin/browserify client.js -o static/bundle.js"
+    "dev": "watchify lib/client.js -o dist/bundle.js -v",
+    "build": "browserify lib/client.js -o dist/bundle.js"
   },
   "directories": {
     "bin": "./bin"
