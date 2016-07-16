@@ -4,27 +4,30 @@ Chat for neko pals 🐱 💬
 [![npm](https://img.shields.io/npm/v/nekocafe.svg?maxAge=2592000?style=plastic)](https://www.npmjs.com/package/nekocafe)
 [![built with choo v3](https://img.shields.io/badge/built%20with%20choo-v3-ffc3e4.svg?style=flat-square)](https://github.com/yoshuawuyts/choo)
 
-![screenshot](IMG_0710.png)
+![screenshot](IMG_0717.png)
+![screenshot](IMG_0718.png)
 
 ## What
 
-You need a server to run this. Send your friends the url and you can chat.
+A simple chat server using websockets and node. Send your friends the url and you can chat using a browser.
 
 * designed for mobile
-* no annoying passwords
-* use any name (incl emoji 🍰 )
+* no passwords/registration
+* use any name (even emoji 🍰 )
+* hotlinked urls
 
-## Installation
+## Installing
+
 ```
 npm install -g nekocafe
 ```
 
-## Usage
+## Running
 ```
 nekocafe <portnumber>
 ```
 
-If you have SSL certificates, just pass them on the command line:
+For https mode, just pass your certificates on the command line:
 ```
-nekocafe <portnumber> <key.pem> <cert.pem>
+nekocafe <portnumber> <keyfile.pem> <certfile.pem>
 ```
