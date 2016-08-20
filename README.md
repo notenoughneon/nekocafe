@@ -13,8 +13,7 @@ A simple chat server using websockets and node. Send your friends the url and yo
 
 * designed for mobile
 * no passwords/registration
-* use any name (even emoji 🍰 )
-* hotlinked urls
+* hotlinked urls and images
 
 ## Installing
 
@@ -31,3 +30,8 @@ For https mode, just pass your certificates on the command line:
 ```
 nekocafe <portnumber> <keyfile.pem> <certfile.pem>
 ```
+
+## Changelog
+
+* 1.1.0 - embedded images, remember username/prefs, performance improvements
+* 1.0.0 - first release
