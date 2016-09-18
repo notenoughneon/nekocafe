@@ -6,7 +6,8 @@
   "preferGlobal": true,
   "scripts": {
     "dev": "watchify lib/client.js -o dist/bundle.js -v",
-    "build": "browserify lib/client.js -o dist/bundle.js"
+    "build": "browserify lib/client.js -o dist/bundle.js",
+    "start": "bin/nekocafe 80"
   },
   "directories": {
     "bin": "./bin"
