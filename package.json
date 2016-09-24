@@ -4,6 +4,9 @@
   "description": "Minimal websocket chat",
   "license": "MIT",
   "preferGlobal": true,
+  "engines": {
+    "node": ">=6.0.0"
+  },
   "scripts": {
     "dev": "watchify lib/client.js -o dist/bundle.js -v",
     "build": "browserify lib/client.js -o dist/bundle.js",
