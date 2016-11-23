@@ -21,7 +21,6 @@
     ]
   },
   "dependencies": {
-    "cache-element": "^1.1.1",
     "choo": "^4.0.0-5",
     "express": "^4.14.0",
     "oembed-any": "^0.1.0",
