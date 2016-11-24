@@ -4,6 +4,7 @@ html, body, .container {
 .dark {
     color: #d0d0d0;
     background-color: #313131;
+    min-height: 100%;
 }
 .options {
     padding: 4px;
