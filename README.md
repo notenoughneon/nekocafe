@@ -30,6 +30,14 @@ For https mode, pass your certificates on the command line:
 nekocafe <portnumber> <keyfile.pem> <certfile.pem>
 ```
 
+## Development
+
+`npm run dev` to build client side (outputs to dist/)
+
+`node lib/server.js <portnumber>` to run the server (does not need to restart after client rebuild)
+
+or `npm run start` to run on port 80
+
 ## Changelog
 
 * 1.2.0 - embedded youtubes, tweets
