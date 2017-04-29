@@ -40,6 +40,7 @@ or `npm run start` to run on port 80
 
 ## Changelog
 
+* 1.3.0 - file uploads
 * 1.2.0 - embedded youtubes, tweets
 * 1.1.0 - embedded images, remember username/prefs, performance improvements
 * 1.0.0 - first release
