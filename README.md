@@ -38,6 +38,48 @@ nekocafe <portnumber> <keyfile.pem> <certfile.pem>
 
 or `npm run start` to run on port 80
 
+## Protocol
+
+### Client
+
+#### `nick, name: string`
+
+Set nick of the connecting client. Required after connecting.
+
+#### `replay`
+
+Request server to replay all messages in the backlog. Not required.
+
+#### `message, text: string`
+
+Send a message to the chatroom.
+
+#### `file, {name: string, type: string, data: blob}`
+
+Send a file attachment. `type` is the mimetype which will be used to embed the media, if possible.
+
+### Server
+
+#### `users, Array<{id: string, nick: string}>`
+
+The list of connected users. Sent after a client connects.
+
+#### `join, {id: string, nick: string}`
+
+Sent when a user joins.
+
+#### `part, {id: string, nick: string}`
+
+Sent when a user leaves.
+
+#### `time, now: number`
+
+Current server time, sent every 15 seconds. Used to provide accurate timestamp deltas despite clock drift between client/server.
+
+#### `message, {time: number, nick: string, message: string, embeds: Array<{type: ('html'|'tweet'), html?: string, id?: string}>}`
+
+A message sent to the chatroom. HTML is not stripped from the content. `embeds` contains a list of parsed embed content. 
+
 ## Changelog
 
 * 1.3.0 - file uploads
