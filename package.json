@@ -21,7 +21,7 @@
     ]
   },
   "dependencies": {
-    "choo": "^5.1.4",
+    "choo": "^6.0.0",
     "express": "^4.14.0",
     "oembed-any": "^0.1.1",
     "socket.io": "^1.4.8",
